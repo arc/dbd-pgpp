@@ -1435,18 +1435,15 @@ sub compute
 	my $fields_length = scalar @{$pgsql->{row_description}};
 
 	my $bitmap_length = $self->_get_length_of_null_bitmap($fields_length);
-	my $bitmap = unpack 'C*', $stream->_get_byte($bitmap_length);
+	my $non_null = unpack 'B*', $stream->_get_byte($bitmap_length);
 	my @result;
-	my $shift = 1;
-	for my $i (1..$fields_length) {
-		if ($self->_is_not_null($bitmap, $bitmap_length, $i)) {
+	for my $i (0 .. $fields_length - 1) {
+		my $value;
+		if (substr $non_null, $i, 1) {
 			my $length = $stream->_get_int32();
-			my $value = $stream->_get_byte($length - 4);
-			push @result, $value;
-			next;
+			$value = $stream->_get_byte($length - 4);
 		}
-		push @result, undef;
-		next;
+		push @result, $value;
 	}
 	$self->{result} = \@result;
 }
@@ -1459,16 +1456,6 @@ sub _get_length_of_null_bitmap {
 	my $length = $number / 8;
 	++$length if $number % 8;
 	return $length;
-}
-
-
-sub _is_not_null {
-	my $self = shift;
-	my $bitmap = shift || 0;
-	my $length = shift || 0;
-	my $index = shift || 0;
-
-	($bitmap >> (($length * 8) - $index)) & 0x01;
 }
 
 

@@ -372,6 +372,12 @@ sub STORE
 		$dbh->{$key} = $value;
 		return 1;
 	}
+	elsif ($key eq 'NUM_OF_FIELDS') {
+		# Don't set this twice; DBI doesn't seem to like it.
+		# XXX: why not?
+		my $curr = $dbh->FETCH($key);
+		return 1 if $curr && $curr == $value;
+	}
 	return $dbh->SUPER::STORE($key, $value);
 }
 

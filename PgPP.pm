@@ -1446,6 +1446,11 @@ sub compute
 			if ($type_oid == 16) { # bool
 				$value = ($value eq 'f') ? 0 : 1;
 			}
+			elsif ($type_oid == 17) { # bytea
+				$value =~ s{\\(\\|[0-7]{3})}{
+					$1 eq '\\' ? '\\' : chr oct $1
+				}ge;
+			}
 		}
 		push @result, $value;
 	}

@@ -7,7 +7,7 @@ WriteMakefile(
 		'DBI' => 0.0,
 	},
 	($] >= 5.005
-		? (AUTHOR     => 'OYAMA Hiroyuki <oyama@crayfish.co.jp>')
+		? (AUTHOR     => 'OYAMA Hiroyuki <oyama@module.jp>')
 		: ()
 	),
 );

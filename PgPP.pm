@@ -1777,11 +1777,11 @@ L<DBI>, L<http://developer.postgresql.org/docs/postgres/protocol.html>
 
 =head1 AUTHOR
 
-Hiroyuki OYAMA E<lt>oyama@crayfish.co.jpE<gt>
+Hiroyuki OYAMA E<lt>oyama@module.jpE<gt>
 
 =head1 COPYRIGHT AND LICENCE
 
-Copyright (C) 2002 Hiroyuki OYAMA. Japan. All rights reserved.
+Copyright (C) 2004 Hiroyuki OYAMA. Japan. All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself.
 

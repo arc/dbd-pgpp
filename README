@@ -91,7 +91,7 @@ BUG REPORT:
 -----------
 
 Wne a problem is found, append the following elements and give
-mail to <oyama@crayfish.co.jp>.
+mail to <oyama@module.jp>.
 
   * The version and platform of Perl which are used.
   * The version and platform of PostgreSQL server.
@@ -101,7 +101,7 @@ mail to <oyama@crayfish.co.jp>.
 
 COPYRIGHT AND LICENCE:
 ----------------------
-Copyright (C) 2002 Hiroyuki OYAMA. Japan. All rights reserved.
+Copyright (C) 2004 Hiroyuki OYAMA. Japan. All rights reserved.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 

@@ -2,6 +2,7 @@ Changes
 Makefile.PL
 MANIFEST
 PgPP.pm
+DBD-PgPP.ja.pod
 README
 t/00.load.t
 t/05.connect.t

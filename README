@@ -1,0 +1,62 @@
+DBD::PgPP version 0.01
+=====================
+
+DBD::PgPP - Pure Perl PostgreSQL driver for the DBI.
+
+DBD::PgPP is a Pure Perl client interface for the PostgreSQL database.
+This module implements network protocol between server and client of
+PostgreSQL, thus you don't need external PostgreSQL client library
+like "libpq" for this module to work. It means this module enables you
+to connect to PostgreSQL server from some operation systems which
+PostgreSQL is not ported. How nifty!
+
+
+INSTALLATION:
+-------------
+
+To install this module type the following:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+
+DEPENDENCIES:
+-------------
+
+This module requires these other modules and libraries:
+
+  Net::PostgreSQL 0.04
+
+
+LIMITATION:
+-----------
+
+  * Can't use 'crypt' authentication in a DES-based crypt().
+  * Can't use the 'Kerberos v4/5' authentication.
+  * Can't use the SSL Connection.
+  * Can't use BLOB data.
+
+
+BUG REPORT:
+-----------
+
+Wne a problem is found, append the following elements and give
+mail to <oyama@crayfish.co.jp>.
+
+  * The version and platform of Perl which are used.
+  * The version and platform of PostgreSQL server.
+  * All the error messages generated with the problem.
+  * The sample code which can reproduce the problem.
+
+  * The output result which attached and operated the 'debug'
+    option to Net::PostgreSQL.
+
+
+COPYRIGHT AND LICENCE:
+----------------------
+Copyright (C) 2002 Hiroyuki OYAMA. Japan. All rights reserved.
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself. 

@@ -1,0 +1,14 @@
+Changes
+Makefile.PL
+MANIFEST
+PgPP.pm
+README
+t/00.load.t
+t/05.connect.t
+t/06.setup.t
+t/07.insert.t
+t/08.select.t
+t/09.update.t
+t/10.delete.t
+t/99.cleanup.t
+script/pgsql.pl

@@ -3,12 +3,11 @@ DBD::PgPP
 
 DBD::PgPP - Pure Perl PostgreSQL driver for the DBI.
 
-DBD::PgPP is a Pure Perl client interface for the PostgreSQL database.
-This module implements network protocol between server and client of
-PostgreSQL, thus you don't need external PostgreSQL client library
-like "libpq" for this module to work. It means this module enables you
-to connect to PostgreSQL server from some operation systems which
-PostgreSQL is not ported. How nifty!
+DBD::PgPP is a Pure Perl client interface for the PostgreSQL database.  This
+module implements the PostgreSQL client/server network protocol, so you
+don't need an external PostgreSQL client library like "libpq" for it to
+work. That means you can connect to a PostgreSQL server from operating
+systems to which PostgreSQL has not been ported. How nifty!
 
 
 DEPENDENCIES:
@@ -20,8 +19,8 @@ This module requires these other modules and libraries:
   IO::Socket
 
 
-OPERATING SYSTEM SUPPORTED BY 'DBD::PgPP':
-------------------------------------------
+OPERATING SYSTEMS SUPPORTED BY 'DBD::PgPP':
+-------------------------------------------
 
 This module has been tested on these OSes.
 
@@ -31,6 +30,7 @@ This module has been tested on these OSes.
   * FreeBSD4.6 with perl5.6.1 built for i386-freebsd
   * FreeBSD3.4 with perl5.005_03 & perl5.6.1 built for i386-freebsd
   * Linux with perl5.005_03 built for ppc-linux
+  * Linux with perl5.6.1 on i386
   * Solaris 2.6 with perl 5.6.1 built for sun4-solaris
   * Solaris 2.6 with perl 5.004_04 built for sun4-solaris
 
@@ -104,4 +104,4 @@ COPYRIGHT AND LICENCE:
 Copyright (C) 2004 Hiroyuki OYAMA. Japan. All rights reserved.
 
 This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself. 
+it under the same terms as Perl itself.

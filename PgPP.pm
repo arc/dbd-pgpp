@@ -118,7 +118,7 @@ sub quote
         # nulls separately.
         return 'NULL';
     }
-    else {
+    elsif (ref $s ne 'ARRAY') { # or not a ref at all
         # It's best to always put quotes round it, even if it looks like a
         # simple integer.  Otherwise you can't compare the result of quoting
         # Perl numeric zero to a boolean column.  (You can't _reliably_
@@ -130,6 +130,23 @@ sub quote
         # and can therefore fix up bools in _both_ directions.)
         $s =~ s/(?=[\\\'])/\\/g;
         return "'$s'";
+    }
+    else {
+        # It's an array ref, so produce an 'IN'-style list.  This is a bit
+        # sneaky; DBI specifically guarantees that nothing like this
+        # happens.  But it seems obviously the right thing to me, and
+        # something I actually need for an application, so I'm doing it
+        # anyway.  If you were relying on passing an array-ref and getting
+        # back its stringified form, tough -- stringify it yourself first.
+
+        # Empty parens are forbidden, so special-case an empty array.  This
+        # has the desired effect -- it's a list that nothing is ever IN.
+        return '(NULL)' if !@$s;
+
+        # Explicitly stringify each item, so that we never try to produce a
+        # nested list.  But don't stringify NULLs.
+        my $list = join ', ', map { $dbh->quote($_ && "$_") } @$s;
+        return "($list)";
     }
 }
 

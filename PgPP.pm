@@ -531,7 +531,7 @@ sub _dump_packet {
 		print '   ' x (16 - length $chunk);
 		print '  ';
 		print join '', map {
-			sprintf '%s', (/[\w\d\*\,\?\%\=\'\;\(\)\.-]/) ? $_ : '.'
+			sprintf '%s', (/[[:graph:] ]/) ? $_ : '.'
 		} split //, $chunk;
 		print "\n";
 	}

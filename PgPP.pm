@@ -130,12 +130,6 @@ sub connect
 			debug    => $data_source_info->{debug},
 		);
 		$dbh->STORE(pgpp_connection => $pgsql);
-#		$dbh->STORE(thread_id => $mysql->{server_thread_id});
-
-		if (! $attrhash->{AutoCommit}) {
-			my $pgsth = $pgsql->prepare('BEGIN');
-			$pgsth->execute();
-		}
 	};
 	if ($@) {
 		$dbh->DBI::set_err(1, $@);
@@ -282,13 +276,44 @@ sub FETCH
 sub STORE
 {
 	my $dbh = shift;
-	my ($key, $value) = @_;
+	my ($key, $new) = @_;
 
-	if ($key =~ /^(?:pgpp_.*|AutoCommit)$/) {
-		$dbh->{$key} = $value;
+	if ($key eq 'AutoCommit') {
+		my $old = $dbh->{$key};
+		my $never_set = !$dbh->{pgpp_ever_set_autocommit};
+
+		# This logic is stolen from DBD::Pg
+		if (!$old && $new && $never_set) {
+			# Do nothing; fall through
+		}
+		elsif (!$old && $new) {
+			# Turning it on: commit
+			# XXX: Avoid this if no uncommitted changes.
+			# XXX: Desirable?  See dbi-dev archives.
+			# XXX: Handle errors.
+			my $st = $dbh->{pgpp_connection}->prepare('COMMIT');
+			$st->execute;
+		}
+		elsif ($old && !$new   ||  !$old && !$new && $never_set) {
+			# Turning it off, or initializing it to off at
+			# connection time: begin a new transaction
+			# XXX: Handle errors.
+			my $st = $dbh->{pgpp_connection}->prepare('BEGIN');
+			$st->execute;
+		}
+
+		$dbh->{pgpp_ever_set_autocommit} = 1;
+		$dbh->{$key} = $new;
+
 		return 1;
 	}
-	return $dbh->SUPER::STORE($key, $value);
+
+	if ($key =~ /^pgpp_/) {
+		$dbh->{$key} = $new;
+		return 1;
+	}
+
+	return $dbh->SUPER::STORE($key, $new);
 }
 
 

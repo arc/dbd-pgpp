@@ -922,7 +922,8 @@ sub _each_empty_query_response {
 
 sub _get_byte {
 	my $self = shift;
-	my $length = shift || 1;
+	my $length = shift;
+	$length = 1 unless defined $length;
 
 	$self->_if_short_then_add_buffer($length);
 	my $result = substr $self->{buffer}, 0, $length;
@@ -1029,7 +1030,8 @@ sub rewind {
 
 sub _get_byte {
 	my $self = shift;
-	my $length = shift || 1;
+	my $length = shift;
+	$length = 1 unless defined $length;
 
 	$self->_if_short_then_add_buffer($length);
 	my $result = substr $self->{buffer}, $self->{position}, $length;

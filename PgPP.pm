@@ -957,7 +957,7 @@ sub _get_c_string {
 	while (1) {
 		$length = index $self->{buffer}, "\0";
 		last if $length >= 0;
-		$self->_if_short_then_add_buffer(1);
+		$self->_if_short_then_add_buffer(1 + length $self->{buffer});
 	}
 	my $result = substr $self->{buffer}, 0, $length;
 	$self->{buffer} = substr $self->{buffer}, $length + 1;
@@ -1064,7 +1064,7 @@ sub _get_c_string {
 	while (1) {
 		$length = index($self->{buffer}, "\0", $self->{position}) - $self->{position};
 		last if $length >= 0;
-		$self->_if_short_then_add_buffer(1);
+		$self->_if_short_then_add_buffer(1 + length $self->{buffer});
 	}
 	my $result = substr $self->{buffer}, $self->{position}, $length;
 	$self->{position} += $length + 1;

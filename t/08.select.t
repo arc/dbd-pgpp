@@ -9,11 +9,15 @@ use strict;
 print "1..6\n";
 my $n = 1;
 
-my $pgsql = DBI->connect(
-	"dbi:PgPP:dbname=$ENV{PG_TEST_DB};host=$ENV{PG_TEST_HOST}",
-	$ENV{PG_TEST_USER}, $ENV{PG_TEST_PASS}, {
-		RaiseError => 1,
-});
+my $pgsql;
+eval {
+	$pgsql = DBI->connect(
+		"dbi:PgPP:dbname=$ENV{PG_TEST_DB};host=$ENV{PG_TEST_HOST}",
+		$ENV{PG_TEST_USER}, $ENV{PG_TEST_PASS}, {
+			RaiseError => 1,
+	});
+};
+print 'not ' if $@;
 print "ok $n\n"; $n++;
 
 my $rows = 0;
@@ -69,6 +73,8 @@ eval {
 print "not " if $@ || $rows != 1;
 print "ok $n\n"; $n++;
 
-
-$pgsql->disconnect;
+eval {
+	$pgsql->disconnect;
+};
+print 'not ' if $@;
 print "ok $n\n";

@@ -1,5 +1,5 @@
-DBD::PgPP version 0.01
-=====================
+DBD::PgPP
+=========
 
 DBD::PgPP - Pure Perl PostgreSQL driver for the DBI.
 
@@ -9,6 +9,38 @@ PostgreSQL, thus you don't need external PostgreSQL client library
 like "libpq" for this module to work. It means this module enables you
 to connect to PostgreSQL server from some operation systems which
 PostgreSQL is not ported. How nifty!
+
+
+DEPENDENCIES:
+-------------
+
+This module requires these other modules and libraries:
+
+  DBI
+  IO::Socket
+
+
+OPERATING SYSTEM SUPPORTED BY 'DBD::PgPP':
+------------------------------------------
+
+This module has been tested on these OSes.
+
+  * Mac OS 9 with MacPerl5.6.1r1 built for PowerPC
+  * Mac OS X with perl 5.6.0 buildt for darwin
+  * Windows2000 with ActivePerl5.6.1 buildt631
+  * FreeBSD4.6 with perl5.6.1 built for i386-freebsd
+  * FreeBSD3.4 with perl5.005_03 & perl5.6.1 built for i386-freebsd
+  * Linux with perl5.005_03 built for ppc-linux
+  * Solaris 2.6 with perl 5.6.1 built for sun4-solaris
+  * Solaris 2.6 with perl 5.004_04 built for sun4-solaris
+
+# This list is the environment which I can use by the test usually.
+# DBD::PgPP will operate also in much environment which is not
+# in a list.
+
+Can use on Solaris2.6 with perl5.004_04, although 'make test' is
+failure.
+
 
 
 INSTALLATION:
@@ -21,13 +53,29 @@ To install this module type the following:
    make test
    make install
 
+Note:
+   A part of tests are skipped in the system which used a
+   DES-base crypt(). if this is the other authentication methods,
+   (like 'trust', 'password', 'md5') it will operate correctly.
 
-DEPENDENCIES:
--------------
+   When using 'md5' authentication, if there is no 'Digest::MD5'
+   module, MD5 will be calculated inside. However, it recommends
+   that it installs 'Digest::MD5' module since this is a low speed.
 
-This module requires these other modules and libraries:
 
-  Net::PostgreSQL 0.04
+TESTING:
+--------
+
+The tests are designed to connect to a live database. The following
+environment variables must be set for the tests to run:
+
+PG_TEST_DB=<database>
+PG_TEST_USER=<user>
+PG_TEST_PASS=<password>
+PG_TEST_HOST=<hostname>*
+
+PG_TEST_HOST is optional. When this is not specified, it connects
+with UNIX socket of '/tmp/.s.PGSQL.5432'.
 
 
 LIMITATION:
@@ -49,9 +97,6 @@ mail to <oyama@crayfish.co.jp>.
   * The version and platform of PostgreSQL server.
   * All the error messages generated with the problem.
   * The sample code which can reproduce the problem.
-
-  * The output result which attached and operated the 'debug'
-    option to Net::PostgreSQL.
 
 
 COPYRIGHT AND LICENCE:

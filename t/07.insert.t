@@ -9,11 +9,15 @@ use strict;
 print "1..4\n";
 my $n = 1;
 
-my $pgsql = DBI->connect(
-	"dbi:PgPP:dbname=$ENV{PG_TEST_DB};host=$ENV{PG_TEST_HOST}",
-	$ENV{PG_TEST_USER}, $ENV{PG_TEST_PASS}, {
-		RaiseError => 1,
-});
+my $pgsql;
+eval {
+	$pgsql = DBI->connect(
+		"dbi:PgPP:dbname=$ENV{PG_TEST_DB};host=$ENV{PG_TEST_HOST}",
+		$ENV{PG_TEST_USER}, $ENV{PG_TEST_PASS}, {
+			RaiseError => 1,
+	});
+};
+print 'not ' if $@;
 print "ok $n\n"; $n++;
 
 eval {
@@ -35,13 +39,17 @@ eval {
 	my $sth = $pgsql->prepare(q{SELECT COUNT(id) FROM test});
 	$sth->execute;
 	while (my $record = $sth->fetch()) {
+print 'rows: ', $record->[0], "\n";
 		$rows = $record->[0];
 	}
 };
 print "not " if $@ || $rows != 3;
 print "ok $n\n"; $n++;
 
-$pgsql->disconnect;
+eval {
+	$pgsql->disconnect;
+};
+print 'not ' if $@;
 print "ok $n\n";
 
 1;

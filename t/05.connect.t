@@ -9,7 +9,13 @@ use strict;
 
 print "1..1\n";
 my $n = 1;
-
-my $dbh = DBI->connect("dbi:PgPP:dbname=$ENV{PG_TEST_DB};host=$ENV{PG_TEST_HOST}", $ENV{PG_TEST_USER}, $ENV{PG_TEST_PASS});
-$dbh->disconnect;
+eval {
+	my $dbh = DBI->connect(
+		"dbi:PgPP:dbname=$ENV{PG_TEST_DB};host=$ENV{PG_TEST_HOST}",
+		$ENV{PG_TEST_USER}, $ENV{PG_TEST_PASS}, {
+			RaiseError => 1
+	});
+	$dbh->disconnect;
+};
+print 'not ' if $@;
 print "ok $n\n";

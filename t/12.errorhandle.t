@@ -3,13 +3,11 @@ if (!exists($ENV{PG_TEST_DB}) || !exists($ENV{PG_TEST_USER})) {
 	exit 0;
 }
 
-
 use DBI;
 use strict;
 
-print "1..4\n";
+print "1..3\n";
 my $n = 1;
-
 
 my $pgsql;
 eval {
@@ -17,28 +15,17 @@ eval {
 		"dbi:PgPP:dbname=$ENV{PG_TEST_DB};host=$ENV{PG_TEST_HOST}",
 		$ENV{PG_TEST_USER}, $ENV{PG_TEST_PASS}, {
 			RaiseError => 1, PrintError => 0
-	});
+	}) or die $DBI::errstr;
 };
 print 'not ' if $@;
 print "ok $n\n"; $n++;
 
-eval {
-	$pgsql->do(q{DROP TABLE test});
-};
-print "not " if $@;
-print "ok $n\n"; $n++;
 
-my $rows = 0;
 eval {
-	my $sth = $pgsql->prepare(q{
-		SELECT id, name FROM test WHERE id = 1
-	});
-	$sth->execute;
-	while (my $record = $sth->fetch()) {
-		++$rows;
-	}
+	my $sth = $pgsql->prepare(q{SELECT * FROM unknowntable});
+	$sth->execute();
 };
-print "not " if !defined($@) || $rows > 0;
+print "not " unless defined $pgsql && $pgsql->errstr && $@;
 print "ok $n\n"; $n++;
 
 eval {
@@ -46,3 +33,5 @@ eval {
 };
 print 'not ' if $@;
 print "ok $n\n";
+
+1;

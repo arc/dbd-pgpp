@@ -9,17 +9,22 @@ use strict;
 print "1..4\n";
 my $n = 1;
 
-my $pgsql = DBI->connect(
-	"dbi:PgPP:dbname=$ENV{PG_TEST_DB};host=$ENV{PG_TEST_HOST}",
-	$ENV{PG_TEST_USER}, $ENV{PG_TEST_PASS}, {
-		RaiseError => 1,
-});
+my $pgsql;
+eval {
+	$pgsql = DBI->connect(
+		"dbi:PgPP:dbname=$ENV{PG_TEST_DB};host=$ENV{PG_TEST_HOST}",
+		$ENV{PG_TEST_USER}, $ENV{PG_TEST_PASS}, {
+			RaiseError => 1,
+	});
+};
+print 'not ' if $@;
 print "ok $n\n"; $n++;
 
 eval {
-	my $sth = $pgsql->do(q{UPDATE test SET name='hoge' WHERE id > 1});
+	my $row = $pgsql->do(q{UPDATE test SET name='hoge' WHERE id > 1});
+	die 'no match' if $row != 2;
 };
-print "not " if $@ && $pgsql->{affected_rows} != 2;
+print "not " if $@;
 print "ok $n\n"; $n++;
 
 
@@ -36,6 +41,8 @@ eval {
 print "not " if $@ || $rows != 2;
 print "ok $n\n"; $n++;
 
-
-$pgsql->disconnect;
+eval {
+	$pgsql->disconnect;
+};
+print 'not ' if $@;
 print "ok $n\n";

@@ -5,12 +5,12 @@ use Getopt::Std;
 use strict;
 
 use constant PROMPT          => 'pgsql.PP> ';
-use constant WELCOME_MESSAGE => "Welcome to the PostgreSQL.PP monitor. Type 'quit' for quit pgsql.PP.\n";
+use constant WELCOME_MESSAGE => "Welcome to the DBD::PgPP monitor. Type 'quit' for quit pgsql.PP.\n";
 use constant QUIT_MESSAGE    => "Bye\n";
 
 
 my %option;
-getopts '?vh:u:P:', \%option;
+getopts '?vh:u:dP:', \%option;
 my $database = shift;
 show_version() if $option{v};
 show_usage()   if $option{'?'} || ! defined $database;
@@ -27,12 +27,12 @@ print "\n";
 my $dbh;
 eval {
 	$dbh = DBI->connect(
-		"dbi:PgPP:database=$database;hostname=$option{h};port=$option{P}",
+		"dbi:PgPP:database=$database;hostname=$option{h};port=$option{P};debug=$option{d}",
 		$option{u}, $password, {
-			RaiseError => 1, PrintError => 0,
+			RaiseError => 1, PrintError => 0
 	});
 };
-die $DBI::errstr if $@;
+die $@ if $@;
 
 print WELCOME_MESSAGE;
 print PROMPT;
@@ -72,10 +72,11 @@ exit;
 sub show_usage
 {
 	die <<__USAGE__;
-Usage: pgsql.pl [-?v] [-h HOSTNAME] [-u USER] DATABASE
+Usage: pgsql.pl [-?vd] [-h HOSTNAME] [-u USER] DATABASE
 
   -?   Display this help and exit.
   -h   Connect to host.
+  -d   Show Debug information.
   -u   User for login if not current user.
   -v   Output version information and exit.
 

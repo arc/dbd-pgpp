@@ -1442,6 +1442,10 @@ sub compute
 		if (substr $non_null, $i, 1) {
 			my $length = $stream->_get_int32();
 			$value = $stream->_get_byte($length - 4);
+			my $type_oid = $pgsql->{row_description}[$i]{type};
+			if ($type_oid == 16) { # bool
+				$value = ($value eq 'f') ? 0 : 1;
+			}
 		}
 		push @result, $value;
 	}

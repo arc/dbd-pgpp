@@ -625,7 +625,7 @@ sub execute {
 		my $row_info = $stream->each();
 		if ($row_info->is_error()) {
 			$self->_to_end_of_response($stream);
-			croak $packet->get_message();
+			croak $row_info->get_message();
 		}
 		$row_info->compute($pgsql);
 		$self->{stream} = DBD::PgPP::ReadOnlyPacketStream->new($handle);
@@ -635,7 +635,7 @@ sub execute {
 			printf "-Recieve %s\n", ref($tmp_packet) if $DBD::PgPP::Protocol::DEBUG;
 			if ($tmp_packet->is_error()) {
 				$self->_to_end_of_response($stream);
-				croak $packet->get_message();
+				croak $tmp_packet->get_message();
 			}
 			$tmp_packet->compute($pgsql);
 			last if $tmp_packet->is_end_of_response;

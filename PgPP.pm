@@ -20,7 +20,7 @@ use DBI;
 use Carp;
 use vars qw($VERSION $err $errstr $state $drh);
 
-$VERSION = '0.04';
+$VERSION = '0.05';
 $err = 0;
 $errstr = '';
 $state = undef;
@@ -469,7 +469,7 @@ use IO::Socket;
 use Carp;
 use vars qw($VERSION $DEBUG);
 use strict;
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 use constant DEFAULT_UNIX_SOCKET => '/tmp';
 use constant DEFAULT_PORT_NUMBER => 5432;
@@ -557,7 +557,7 @@ sub _connect {
 		$pgsql = IO::Socket::UNIX->new(
 			Type => SOCK_STREAM,
 			Peer => $path,
-		) or croak "Couldn't connect to $self->{path}/.s.PGSQL.$self->{port}: $@";	
+		) or croak "Couldn't connect to $self->{path}/.s.PGSQL.$self->{port}: $@";
 	}
 	$pgsql->autoflush(1);
 	$self->{'socket'} = $pgsql;
@@ -1167,7 +1167,7 @@ use strict;
 sub new {
 	my $class = shift;
 	bless {
-	}, $class; 
+	}, $class;
 }
 
 
@@ -1190,7 +1190,7 @@ use base 'DBD::PgPP::Response';
 
 
 package DBD::PgPP::AuthenticationKerberosV4;
-use base 'DBD::PgPP::Response'; 
+use base 'DBD::PgPP::Response';
 use Carp;
 use strict;
 
@@ -1201,7 +1201,7 @@ sub compute {
 
 
 package DBD::PgPP::AuthenticationKerberosV5;
-use base 'DBD::PgPP::Response'; 
+use base 'DBD::PgPP::Response';
 use Carp;
 use strict;
 
@@ -1211,7 +1211,7 @@ sub compute {
 
 
 package DBD::PgPP::AuthenticationCleartextPassword;
-use base 'DBD::PgPP::Response'; 
+use base 'DBD::PgPP::Response';
 
 sub compute {
 	my $self = shift;
@@ -1226,13 +1226,13 @@ sub compute {
 
 
 package DBD::PgPP::AuthenticationCryptPassword;
-use base 'DBD::PgPP::Response'; 
+use base 'DBD::PgPP::Response';
 use Carp;
 
 sub new {
 	my $class = shift;
 	my $self = $class->SUPER::new();
-	$self->{salt} = shift;	
+	$self->{salt} = shift;
 	$self;
 }
 
@@ -1671,7 +1671,7 @@ sub hexdigest {
 		for (0..63) {
 			#no warnings;
 			local($^W) = 0;
-			$a = _m($b + 
+			$a = _m($b +
 				_l($A[4 + 4 * ($_ >> 4) + $_ % 4],
 					_m(&{(
 						sub {
@@ -1788,7 +1788,7 @@ with MacPerl5.6.1r1 built for PowerPC
 =item * Mac OS X
 
 with perl v5.6.0 built for darwin
- 
+
 =item * Windows2000
 
 with ActivePerl5.6.1 build631.

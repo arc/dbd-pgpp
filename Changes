@@ -1,5 +1,31 @@
 Revision history for Perl extension DBD::PgPP.
 
+0.05  Sun May  9 11:55:35 UTC 2004
+        - All known bugs fixed:
+           * No "can't locate method" exceptions when your query has an
+             error
+           * Permit executing a prepared handle more than once
+           * Correctly handle empty strings in result rows
+           * No infinite loop for long result rows
+           * Permit more than eight columns in a result set
+           * False Boolean values in results are false in your Perl code
+             (not 'f').  This constitutes a change in behaviour, but one
+             that's so obviously the right thing that I haven't created an
+             option to give you the broken behaviour.
+           * Demangle bytea data in results
+           * Correctly quote placeholder values containing backslashes
+           * Actually issue a BEGIN when a transaction starts, so that
+             rollback can roll changes back
+         - Unfortunately, the test suite has not yet been updated to
+           trigger all these bugs.  Since it's nearly two years since the
+           last release of DBD::PgPP, I thought it better to get these
+           crucial bugfixes out the door soon; the test suite is my next
+           priority for 0.06 and beyond.  So there may still be bugs in
+           this code.  However, I've been using this version for a while
+           now in a project for a customer, so I'm fairly confident that
+           at least the bits I use are correct.
+        - This release prepared by new co-maintainer Aaron Crane <arc@cpan.org>
+
 0.04  Wed Jul 24 18:49:09 JST 2002
 	- The problem which cannot use a BEGIN/ROLLBACK statement
 	  was repaired.

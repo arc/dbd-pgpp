@@ -257,7 +257,14 @@ sub rollback
 
 sub disconnect
 {
-	return 1;
+    my ($dbh) = @_;
+
+    if (my $conn = $dbh->FETCH('pgpp_connection')) {
+        $conn->close;
+        $dbh->STORE('pgpp_connection', undef);
+    }
+
+    return 1;
 }
 
 
@@ -320,12 +327,13 @@ sub STORE
 sub DESTROY
 {
 	my $dbh = shift;
-	my $pgsql = $dbh->FETCH('pgpp_connection');
-	$pgsql->close if defined $pgsql;
+        $dbh->disconnect;
 }
 
 
 package DBD::PgPP::st;
+
+use Carp qw<croak>;
 
 $DBD::PgPP::st::imp_data_size = 0;
 use strict;
@@ -362,6 +370,7 @@ sub execute
 		$statement =~ s/\?/$quoted_param/e;
 	}
 	my $pgsql = $sth->FETCH('pgpp_handle');
+        die "execute on disconnected database" if $pgsql->{closed};
 	my $result;
 	eval {
 		$sth->{pgpp_record_iterator} = undef;
@@ -519,10 +528,11 @@ sub close {
 	return unless $socket;
 	return unless fileno $socket;
 
-	my $terminate_packet = 'X'. "\0";
+        my $terminate_packet = 'X' . pack 'N', 5;
 	_dump_packet($terminate_packet);
 	$socket->send($terminate_packet, 0);
 	$socket->close();
+        $self->{closed} = 1;
 }
 
 

@@ -15,4 +15,5 @@ t/old/11.transaction.t
 t/old/12.errorhandle.t
 t/old/99.cleanup.t
 t/new/00basic.t
+t/new/01connect.t
 script/pgsql.pl

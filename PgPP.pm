@@ -103,6 +103,37 @@ $DBD::PgPP::dr::imp_data_size = 0;
 use strict;
 
 
+# We need to implement ->quote, because otherwise we get the default DBI
+# one, which ignores backslashes.  The DBD::Pg implementation doubles all
+# backslashes and apostrophes; this version backslash-protects all of them.
+# XXX: What about null characters, or byte sequences that don't form valid
+# characters in the relevant encoding?
+# XXX: What about the mysterious additional '$data_type' argument?
+sub quote
+{
+    my ($dbh, $s) = @_;
+
+    if (!defined $s) {
+        # Yes, _every_ DBD that needs its own quote method has to check for
+        # nulls separately.
+        return 'NULL';
+    }
+    else {
+        # It's best to always put quotes round it, even if it looks like a
+        # simple integer.  Otherwise you can't compare the result of quoting
+        # Perl numeric zero to a boolean column.  (You can't _reliably_
+        # compare a Perl scalar to a boolean column anyway, because there
+        # are six Postgres syntaxes for TRUE, and six for FALSE, and
+        # everything else is an error -- but that's another story, and at
+        # least if you quote '0' it looks false to Postgres.  Sigh.  I have
+        # some plans for a pure-Perl DBD which understands the 7.4 protocol,
+        # and can therefore fix up bools in _both_ directions.)
+        $s =~ s/(?=[\\\'])/\\/g;
+        return "'$s'";
+    }
+}
+
+
 sub connect
 {
 	my $drh = shift;

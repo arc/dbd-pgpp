@@ -27,7 +27,7 @@ eval {
 $pgsql->{RaiseError} = 1;
 eval {
 	$pgsql->do(q{
-		CREATE TABLE test (id int, name varchar, value varchar, score float, date datetime default 'now()')
+		CREATE TABLE test (id int, name varchar, value varchar, score float, date timestamp without time zone default 'now()')
 	});
 };
 print "not " if $@;

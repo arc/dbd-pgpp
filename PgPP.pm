@@ -634,7 +634,7 @@ sub _do_authentication {
 	my $stream = $self->get_stream();
 	while (1) {
 		my $packet = $stream->each();
-		printf "Recieve %s\n", ref($packet) if $DEBUG;
+		printf "Receive %s\n", ref($packet) if $DEBUG;
 		last if $packet->is_end_of_response;
 		croak $packet->get_message() if $packet->is_error;
 		$packet->compute($self);
@@ -695,7 +695,7 @@ sub execute {
 
 	my $stream = $pgsql->get_stream();
 	my $packet = $stream->each();
-	printf "Recieve %s\n", ref($packet) if $DBD::PgPP::Protocol::DEBUG;
+	printf "Receive %s\n", ref($packet) if $DBD::PgPP::Protocol::DEBUG;
 	if ($packet->is_error()) {
 		$self->_to_end_of_response($stream);
 		die $packet->get_message();
@@ -721,7 +721,7 @@ sub execute {
 		$self->{stream}->set_buffer($stream->get_buffer);
 		while (1) {
 			my $tmp_packet = $self->{stream}->each();
-			printf "-Recieve %s\n", ref($tmp_packet) if $DBD::PgPP::Protocol::DEBUG;
+			printf "-Receive %s\n", ref($tmp_packet) if $DBD::PgPP::Protocol::DEBUG;
 			if ($tmp_packet->is_error()) {
 				$self->_to_end_of_response($stream);
 				croak $tmp_packet->get_message();
@@ -738,7 +738,7 @@ sub execute {
 		$self->{finish} = 1;
 		while (1) {
 			my $end = $stream->each();
-			printf "-Recieve %s\n", ref($end) if $DBD::PgPP::Protocol::DEBUG;
+			printf "-Receive %s\n", ref($end) if $DBD::PgPP::Protocol::DEBUG;
 			if ($end->is_error()) {
 				$self->_to_end_of_response($stream);
 				croak $end->get_message();

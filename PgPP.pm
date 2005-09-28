@@ -1051,14 +1051,17 @@ sub _get_c_string {
 sub _if_short_then_add_buffer {
 	my $self = shift;
 	my $length = shift || 0;
+
 	return if length($self->{buffer}) >= $length;
 
 	my $handle = $self->{handle};
-	my $packet = '';
-	$handle->recv($packet, 1500, 0);
-	DBD::PgPP::Protocol::_dump_packet($packet);
-	$self->{buffer} .= $packet;
-	return length $packet;
+        while (length($self->{buffer}) < $length) {
+            my $required = $length - length $self->{buffer};
+            my $packet = '';
+            $handle->recv($packet, $required, 0);
+            DBD::PgPP::Protocol::_dump_packet($packet);
+            $self->{buffer} .= $packet;
+	}
 }
 
 
@@ -1162,11 +1165,12 @@ sub _if_short_then_add_buffer {
 	return if (length($self->{buffer}) - $self->{position}) >= $length;
 
 	my $handle = $self->{handle};
-	my $packet = '';
-	$handle->recv($packet, 1500, 0);
-	DBD::PgPP::Protocol::_dump_packet($packet);
-	$self->{buffer} .= $packet;
-	return length $packet;
+        while (length($self->{buffer}) - $self->{position} < $length) {
+            my $packet = '';
+            $handle->recv($packet, 1500, 0);
+            DBD::PgPP::Protocol::_dump_packet($packet);
+            $self->{buffer} .= $packet;
+	}
 }
 
 

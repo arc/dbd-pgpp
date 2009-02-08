@@ -1,7 +1,7 @@
 
 =head1 NAME
 
-DBD::PgPP - Perl�����ǵ��Ҥ���DBI��PostgreSQL�ɥ饤��
+DBD::PgPP - Perlだけで記述したDBI用PostgreSQLドライバ
 
 =head1 SYNOPSIS
 
@@ -9,21 +9,21 @@ DBD::PgPP - Perl�����ǵ��Ҥ���DBI��PostgreSQL�ɥ饤��
 
   my $dbh = DBI->connect('dbi:PgPP:dbname=$dbname', '', ''');
 
-  # �ܤ�����DBI�⥸�塼��Υɥ�����Ȥ򻲾Ȥ��Ƥ�������
+  # 詳しくはDBIモジュールのドキュメントを参照してください
 
 =head1 DESCRIPTION
 
-DBD::PgPP��Perl�����ǵ��Ҥ���PostgreSQL�ǡ����١����ѤΥ��饤����ȥ�
-�󥿡��ե������Ǥ������Υ⥸�塼���PostgreSQL�Υ����Фȥ��饤����Ȥ�
-��魯�ͥåȥ���ץ��ȥ����������Ƥ���Τǡ�B<libpq> �ʤ�¾��
-PostgreSQL���饤����ȥ饤�֥���ɬ�פȤ��ޤ��󡣤Ĥޤꤳ�Υ⥸�塼��
-��PostgreSQL���ܿ�����Ƥ��ʤ�OS���顢PostgreSQL���̿��Ǥ���ΤǤ���
+DBD::PgPPはPerlだけで記述したPostgreSQLデータベース用のクライアントイ
+ンターフェイスです。このモジュールはPostgreSQLのサーバとクライアントが
+交わすネットワークプロトコルを実装しているので、B<libpq> など他の
+PostgreSQLクライアントライブラリを必要としません。つまりこのモジュール
+はPostgreSQLが移植されていないOSから、PostgreSQLと通信できるのです。
 
 =head1 MODULE DOCUMENTATION
 
-���Υɥ�����Ȥ�DBD::PgPP���ò�������ʬ�����¤ˤĤ������������Τǡ�
-���٤Ƥ����夹���ե���󥹤ǤϤ���ޤ��󡣤��Υɥ�����Ȥ��ɤ�����
-�ޤ�DBI�⥸�塼��Υޥ˥奢����ɤ�Ǥ���������
+このドキュメントはDBD::PgPPに特化した部分や制限について説明するもので、
+すべてを網羅するリファレンスではありません。このドキュメントを読む前に
+まずDBIモジュールのマニュアルを読んでください。
 
 =head1 THE DBI CLASS
 
@@ -33,14 +33,14 @@ PostgreSQL���饤����ȥ饤�֥���ɬ�פȤ��ޤ��󡣤Ĥޤꤳ�Υ⥸�塼��
 
 =item B<connect>
 
-�ǡ����١�������³���뤿��κ���¤Υѥ�᡼���ϼ��ΤȤ���Ǥ�:
+データベースに接続するための最低限のパラメータは次のとおりです:
 
   $dbh = DBI->connect('dbi:PgPP:dbname=$dbname', '', '');
 
-���Υѥ�᡼���ϥ桼��ǧ�ڤ�ɬ�פȤ��ʤ�localhost��$dbname�ǡ����١���
-����³���ޤ��������PostgreSQL�Υǥե���Ȥ���������ѤǤ��ޤ���
+このパラメータはユーザ認証を必要としないlocalhostの$dbnameデータベース
+に接続します。これはPostgreSQLのデフォルトの設定で利用できます。
 
-connect()�˴ؤ���ѥ�᡼���ϼ��ΤȤ���Ǥ�:
+connect()に関するパラメータは次のとおりです:
 
   $dbh = DBI->connect(
       "dbi:PgPP:dbname=$dbname",
@@ -57,7 +57,7 @@ connect()�˴ؤ���ѥ�᡼���ϼ��ΤȤ���Ǥ�:
       $username, $password
   );
 
-      �ѥ�᡼�� | �ǥե������
+      パラメータ | デフォルト値
       -----------+-------------------
       dbname     | current userid
       host       | localhost
@@ -65,18 +65,18 @@ connect()�˴ؤ���ѥ�᡼���ϼ��ΤȤ���Ǥ�:
       path       | /tmp
       debug      | undef
 
-I<host>�ѥ�᡼������Ѥ�����ϡ��оݤȤʤ�ۥ��Ȥ� F<postmaster> ��
-C<-i>���ץ����(TCP/IP�����å�)�ǵ�ư���Ƥ���ɬ�פ�����ޤ���
+I<host>パラメータを使用する場合は、対象となるホストの F<postmaster> を
+C<-i>オプション(TCP/IPソケット)で起動しておく必要があります。
 
-�桼��̾�ȥѥ���ɤ���Ѥ���ǧ�ڤϡ�������¦��F<pg_hba.conf>��Ŭ�ڤ�
-�����Ԥ�ɬ�פ�����ޤ���ǧ����ˡ�ˤĤ��Ƥ�I<pg_hba.conf>��I<pg_passwd>
-�Υޥ˥奢��ڡ����򻲾Ȥ��Ƥ���������
+ユーザ名とパスワードを使用する認証は、サーバ側のF<pg_hba.conf>で適切な
+設定を行う必要があります。認証方法についてはI<pg_hba.conf>とI<pg_passwd>
+のマニュアルページを参照してください。
 
 =back
 
 =head1 SUPPORT OPERATING SYSTEM
 
-���Υ⥸�塼��ϼ���OS�ǥƥ��Ȥ���λ���Ƥ��ޤ���
+このモジュールは次のOSでテストが完了しています。
 
 =over 4
 
@@ -112,8 +112,8 @@ with perl5.6.1 built for sun4-solaris.
 
 with perl5.004_04 built for sun4-solaris.
 
-Solaris2.6���perl5.004_04�� I<make test>�Ǽ��Ԥ��ޤ������Ѥ��뤳�Ȥ�
-�Ǥ��ޤ���
+Solaris2.6上のperl5.004_04は I<make test>で失敗しますが使用することが
+できます。
 
 =back
 
@@ -122,20 +122,20 @@ Solaris2.6���perl5.004_04�� I<make test>�Ǽ��Ԥ��ޤ������Ѥ��뤳�Ȥ�
 
 =over 4
 
-=item * ������FreeBSD�Ǥ�'crypt'ǧ�ڤϻ��ѤǤ��ޤ���
+=item * 一部のFreeBSDでは'crypt'認証は使用できません。
 
-=item * 'Kerberos v4/5'ǧ�ڤϻ��ѤǤ��ޤ���
+=item * 'Kerberos v4/5'認証は使用できません。
 
-=item * SSL��³�ϻ��ѤǤ��ޤ���
+=item * SSL接続は使用できません。
 
-=item * BLOB�ǡ����򰷤����ȤϤǤ��ޤ���
+=item * BLOBデータを扱うことはできません。
 
 =back
 
 
 =head1 DEPENDENCIES
 
-���Υ⥸�塼��ϼ��Υ⥸�塼���ɬ�פȤ��ޤ�:
+このモジュールは次のモジュールを必要とします:
 
   L<DBI>, L<IO::Socket>
 
@@ -144,13 +144,13 @@ Solaris2.6���perl5.004_04�� I<make test>�Ǽ��Ԥ��ޤ������Ѥ��뤳�Ȥ�
 
 =over 4
 
-=item * Pure perl��DES�١�����crypt�ؿ����ɲä���
+=item * Pure perlのDESベースのcrypt関数を追加する
 
-=item * Authen::Krb4 & Authen::Krb5����Ѥ���Kerberos v4/5ǧ�ڤ򥵥ݡ��Ȥ���
+=item * Authen::Krb4 & Authen::Krb5を使用してKerberos v4/5認証をサポートする
 
-=item * IO::Socket::SSL(�ޤ���Net::SSLeay)����Ѥ���SSL��³�򥵥ݡ��Ȥ���
+=item * IO::Socket::SSL(またはNet::SSLeay)を使用してSSL接続をサポートする
 
-=item * BLOB�ǡ�����򥵥ݡ��Ȥ���
+=item * BLOBデータををサポートする
 
 =back
 

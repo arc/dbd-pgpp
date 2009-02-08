@@ -128,6 +128,7 @@ sub connect
 			user     => $user,
 			password => $password,
 			debug    => $data_source_info->{debug},
+			path     => $data_source_info->{path},
 		);
 		$dbh->STORE(pgpp_connection => $pgsql);
 	};

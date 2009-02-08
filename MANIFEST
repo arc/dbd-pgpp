@@ -1,7 +1,7 @@
 Changes
 Makefile.PL
 MANIFEST
-PgPP.pm
+lib/DBD/PgPP.pm
 DBD-PgPP.ja.pod
 README
 t/old/00.load.t

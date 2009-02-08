@@ -15,3 +15,4 @@ t/11.transaction.t
 t/12.errorhandle.t
 t/99.cleanup.t
 script/pgsql.pl
+t/new/12.lastinsertid.t

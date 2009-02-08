@@ -325,137 +325,144 @@ sub DESTROY
 }
 
 
-#--- lifted from from DBD::Pg.pm
-
-sub _server_version 
-{
-        my ($dbh) = @_;
-        unless (defined $dbh->{pgpp_server_version}) {
-                my $sth = $dbh->prepare('SELECT version()');
-                my $count = $sth->execute();
-                if (!defined $count or $count eq '0E0') {
-                        $sth->finish();
-                        $dbh->STORE('pgpp_server_version', 0);
-                }
-                elsif ($sth->fetchall_arrayref()->[0][0] =~ /^PostgreSQL (\d+)\.(\d+)\.?(\d*)/) {
-                        $dbh->STORE('pgpp_server_version', ($1 * 100 + $2) * 100 + ($3 || 0));
-                }
+sub _server_version {
+    my ($db) = @_;
+    if (!defined $db->{pgpp_server_version}) {
+        my $num = 0;
+        my $st = $db->prepare('SELECT version()');
+        my $n = $st->execute;
+        if (!defined $n || $n eq '0E0') {
+            $st->finish;
         }
-        return $dbh->{pgpp_server_version};
+        else {
+            my @v = $st->fetchall_arrayref->[0][0]
+                =~ /^PostgreSQL ([0-9]+)\.([0-9]+)\.?([0-9]*)/;
+            $num = $v[0] * 100_00 + $v[1] * 100 + ($v[2] || 0) if @v;
+        }
+        $db->STORE('pgpp_server_version', $num);
+    }
+    return $db->{pgpp_server_version};
 }
 
-sub last_insert_id 
-{
-        my ($dbh, $catalog, $schema, $table, $col, $attr) = @_;
+sub last_insert_id {
+    my ($db, $catalog, $schema, $table, $col, $attr) = @_;
 
-        ## Our ultimate goal is to get a sequence
-        my ($sth, $count, $SQL, $sequence);
+    if (!defined $attr) {
+        $attr = {};
+    }
+    elsif (!ref $attr && $attr ne '') {
+        # If not a hash, assume it is a sequence name
+        $attr = { sequence => $attr };
+    }
+    elsif (ref $attr ne 'HASH') {
+        return $db->set_err(1, "last_insert_id attrs must be a hashref");
+    }
 
-        ## Cache all of our table lookups? Default is yes
-        my $use_cache = 1;
+    # Catalog and col are not used
+    $schema = '' if !defined $schema;
+    $table = ''  if !defined $table;
 
-        ## Catalog and col are not used
-        $schema = '' if ! defined $schema;
-        $table = '' if ! defined $table;
-        my $cachename = "$schema.$table";
+    # Cache all of our table lookups? Default is yes
+    my $cachename = "$schema.$table";
+    my $use_cache = exists $attr->{pg_cache} ? $attr->{pg_cache} : 1;
 
-        if (defined $attr and length $attr) {
-                ## If not a hash, assume it is a sequence name
-                if (! ref $attr) {
-                        $attr = {sequence => $attr};
-                }
-                elsif (ref $attr ne 'HASH') {
-                        return $dbh->set_err(1, "last_insert_id must be passed a hashref as the final argument");
-                }
-                ## Named sequence overrides any table or schema settings
-                if (exists $attr->{sequence} and length $attr->{sequence}) {
-                        $sequence = $attr->{sequence};
-                }
-                if (exists $attr->{pg_cache}) {
-                        $use_cache = $attr->{pg_cache};
-                }
+    my $sequence;
+    if (defined $attr->{sequence}) {
+        # Named sequence overrides any table or schema settings
+        $sequence = $attr->{sequence};
+    }
+    elsif ($use_cache && exists $db->{pgpp_liicache}{$cachename}) {
+        $sequence = $db->{pgpp_liicache}{$cachename};
+    }
+    else {
+        # At this point, we must have a valid table name
+        return $db->set_err(1, "last_insert_id needs a sequence or table name")
+            if $table eq '';
+
+        my @args = $table;
+
+        # Only 7.3 and up can use schemas
+        my $pg_catalog;
+        if (_server_version($db) < 70300) {
+            $schema = '';
+            $pg_catalog = '';
+        }
+        else {
+            $pg_catalog = 'pg_catalog.';
         }
 
-        if (! defined $sequence and exists $dbh->{pgpp_liicache}{$cachename} and $use_cache) {
-                $sequence = $dbh->{pgpp_liicache}{$cachename};
-        }
-        elsif (! defined $sequence) {
-                ## At this point, we must have a valid table name
-                if (! length $table) {
-                        return $dbh->set_err(1, "last_insert_id needs at least a sequence or table name");
-                }
-                my @args = ($table);
-
-                ## Only 7.3 and up can use schemas
-                my $pg_catalog;
-                if (_server_version($dbh) < 70300) {
-                        $schema = '';
-                        $pg_catalog = '';
-                }
-                else { 
-                        $pg_catalog = 'pg_catalog.';
-                }
-
-                ## Make sure the table in question exists and grab its oid
-                my ($schemajoin,$schemawhere) = ('','');
-                if (length $schema) {
-                        $schemajoin = "\n JOIN pg_catalog.pg_namespace n ON (n.oid = c.relnamespace)";
-                        $schemawhere = "\n AND n.nspname = ?";
-                        push @args, $schema;
-                }
-                $SQL = "SELECT c.oid FROM ${pg_catalog}pg_class c $schemajoin\n WHERE relname = ?$schemawhere";
-                $sth = $dbh->prepare($SQL);
-                $count = $sth->execute(@args);
-                if (!defined $count or $count eq '0E0') {
-                        $sth->finish();
-                        my $message = qq{Could not find the table "$table"};
-                        length $schema and $message .= qq{ in the schema "$schema"};
-                        return $dbh->set_err(1, $message);
-                }
-                my $oid = $sth->fetchall_arrayref()->[0][0];
-                ## This table has a primary key. Is there a sequence associated with it via a unique, indexed column?
-                $SQL = "SELECT a.attname, i.indisprimary, substring(d.adsrc for 128) AS def\n".
-                  "FROM ${pg_catalog}pg_index i, ${pg_catalog}pg_attribute a, ${pg_catalog}pg_attrdef d\n ".
-                        "WHERE i.indrelid = $oid AND d.adrelid=a.attrelid AND d.adnum=a.attnum\n".
-                          "      AND a.attrelid=$oid AND i.indisunique IS TRUE\n".
-                                "  AND a.atthasdef IS TRUE AND i.indkey[0]=a.attnum\n".
-                                  " AND d.adsrc ~ '^nextval'";
-                $sth = $dbh->prepare($SQL);
-                $count = $sth->execute();
-                if (!defined $count or $count eq '0E0') {
-                        $sth->finish();
-                        $dbh->set_err(1, qq{No suitable column found for last_insert_id of table "$table"});
-                }
-                my $info = $sth->fetchall_arrayref();
-
-                ## We have at least one with a default value. See if we can determine sequences
-                my @def;
-                for (@$info) {
-                        next unless $_->[2] =~ /^nextval\('([^']+)'::/o;
-                        push @$_, $1;
-                        push @def, $_;
-                }
-                if (!@def) {
-                        $dbh->set_err(1, qq{No suitable column found for last_insert_id of table "$table"\n});
-                }
-                ## Tiebreaker goes to the primary keys
-                if (@def > 1) {
-                        my @pri = grep { $_->[1] } @def;
-                        if (1 != @pri) {
-                                $dbh->set_err(1, qq{No suitable column found for last_insert_id of table "$table"\n});
-                        }
-                        @def = @pri;
-                }
-                $sequence = $def[0]->[3];
-                ## Cache this information for subsequent calls
-                $dbh->{pgpp_liicache}{$cachename} = $sequence;
+        # Make sure the table in question exists and grab its oid
+        my ($schemajoin, $schemawhere) = ('','');
+        if (length $schema) {
+            $schemajoin =
+                ' JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace';
+            $schemawhere = ' AND n.nspname = ?';
+            push @args, $schema;
         }
 
-        $sth = $dbh->prepare("SELECT currval(?)");
-        $sth->execute($sequence);
-        return $sth->fetchall_arrayref()->[0][0];
+        my $st = $db->prepare(qq[
+            SELECT c.oid FROM ${pg_catalog}pg_class c $schemajoin
+            WHERE relname = ? $schemawhere
+        ]);
+        my $count = $st->execute(@args);
+        if (!defined $count || $count eq '0E0') {
+            $st->finish;
+            my $message = qq{Could not find the table "$table"};
+            $message .= qq{ in the schema "$schema"} if $schema ne '';
+            return $db->set_err(1, $message);
+        }
+        my $oid = $st->fetchall_arrayref->[0][0];
+        # This table has a primary key. Is there a sequence associated with
+        # it via a unique, indexed column?
+        $st = $db->prepare(qq[
+            SELECT a.attname, i.indisprimary, substring(d.adsrc for 128) AS def
+            FROM ${pg_catalog}pg_index i
+            JOIN ${pg_catalog}pg_attribute a ON a.attrelid = i.indrelid
+                                            AND a.attnum   = i.indkey[0]
+            JOIN ${pg_catalog}pg_attrdef d   ON d.adrelid = a.attrelid
+                                            AND d.adnum   = a.attnum
+            WHERE i.indrelid = $oid
+              AND a.attrelid = $oid
+              AND i.indisunique IS TRUE
+              AND a.atthasdef IS TRUE
+              AND d.adsrc ~ '^nextval'
+        ]);
+        $count = $st->execute;
+        if (!defined $count || $count eq '0E0') {
+            $st->finish;
+            return $db->set_err(1, qq{No suitable column found for last_insert_id of table "$table"});
+        }
+        my $info = $st->fetchall_arrayref;
+
+        # We have at least one with a default value. See if we can determine
+        # sequences
+        my @def;
+        for (@$info) {
+            my ($seq) = $_->[2] =~ /^nextval\('([^']+)'::/ or next;
+            push @def, [@$_, $seq];
+        }
+
+        return $db->set_err(1, qq{No suitable column found for last_insert_id of table "$table"\n})
+            if !@def;
+
+        # Tiebreaker goes to the primary keys
+        if (@def > 1) {
+            my @pri = grep { $_->[1] } @def;
+            return $db->set_err(1, qq{No suitable column found for last_insert_id of table "$table"\n})
+                if @pri != 1;
+            @def = @pri;
+        }
+
+        $sequence = $def[0][3];
+
+        # Cache this information for subsequent calls
+        $db->{pgpp_liicache}{$cachename} = $sequence;
+    }
+
+    my $st = $db->prepare("SELECT currval(?)");
+    $st->execute($sequence);
+    return $st->fetchall_arrayref->[0][0];
 }
-#--- end of last_insert_id
 
 package DBD::PgPP::st;
 

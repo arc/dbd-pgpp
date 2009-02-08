@@ -7,7 +7,7 @@ DBD::PgPP - Pure Perl PostgreSQL driver for the DBI
 
   use DBI;
 
-  my $dbh = DBI->connect('dbi:PgPP:dbname=$dbname', '', ''');
+  my $dbh = DBI->connect('dbi:PgPP:dbname=$dbname', '', '');
 
   # See the DBI module documentation for full details
 
@@ -1721,12 +1721,19 @@ __END__
 
 =head1 DESCRIPTION
 
-DBD::PgPP is a Pure Perl client interface for the PostgreSQL database. This module implements network protocol between server and client of PostgreSQL, thus you don't need external PostgreSQL client library like B<libpq> for this module to work. It means this module enables you to connect to PostgreSQL server from some operation systems which PostgreSQL is not ported. How nifty!
+DBD::PgPP is a pure-Perl client interface for the PostgreSQL database.  This
+module implements the network protocol that allows a client to communicate
+with a PostgreSQL server, so you don't need an external PostgreSQL client
+library like B<libpq> for it to work.  That means this module enables you to
+connect to PostgreSQL server from platforms where there's no PostgreSQL
+port, or where installing PostgreSQL is prohibitively hard.
 
 
 =head1 MODULE DOCUMENTATION
 
-This documentation describes driver specific behavior and restrictions. It is not supposed to be used as the only refference of the user. In any case consult the DBI documentation first !
+This documentation describes driver specific behavior and restrictions; it
+does not attempt to describe everything you might need to use DBD::PgPP.  In
+particular, users are advised to be familiar with the DBI documentation.
 
 =head1 THE DBI CLASS
 
@@ -1736,27 +1743,23 @@ This documentation describes driver specific behavior and restrictions. It is no
 
 =item B<connect>
 
-To connecto to a database with a minimum of parameters, use the following syntax:
+At a minimum, you need to use code like this to connect to the database:
+
   $dbh = DBI->connect('dbi:PgPP:dbname=$dbname', '', '');
 
-This connects to the database $dbname at localhost without any user authentication. This is sufficient for the defaults of PostgreSQL.
+This connects to the database $dbname on localhost without any user
+authentication.  This may well be sufficient for some PostgreSQL
+installations.
 
 The following connect statement shows all possible parameters:
 
-  $dbh = DBI->connect(
-      "dbi:PgPP:dbname=$dbname",
-      $username, $password
-  );
+  $dbh = DBI->connect("dbi:PgPP:dbname=$dbname", $username, $password);
 
-  $dbh = DBI->connect(
-      "dbi:PgPP:dbname=$dbname;host=$host;port=$port",
-      $username, $password
-  );
+  $dbh = DBI->connect("dbi:PgPP:dbname=$dbname;host=$host;port=$port",
+                      $username, $password);
 
-  $dbh = DBI->connect(
-      "dbi:PgPP:dbname=$dbname;path=$path;port=$port",
-      $username, $password
-  );
+  $dbh = DBI->connect("dbi:PgPP:dbname=$dbname;path=$path;port=$port",
+                      $username, $password);
 
       parameter | hard coded default
       ----------+-------------------
@@ -1766,67 +1769,72 @@ The following connect statement shows all possible parameters:
       path      | /tmp
       debug     | undef
 
-If a host is specified, the postmaster on this host needs to be started with the C<-i> option (TCP/IP socket).
+If a host is specified, the postmaster on this host needs to be started with
+the C<-i> option (TCP/IP socket).
 
-
-For authentication with username and password appropriate entries have to be made in pg_hba.conf. Please refer to the L<pg_hba.conf> and the L<pg_passwd> for the different types of authentication.
+For authentication with username and password appropriate entries have to be
+made in pg_hba.conf.  Please refer to the PostgreSQL documentation for
+pg_hba.conf and pg_passwd for the various types of authentication.
 
 =back
 
-=head1 SUPPORT OPERATING SYSTEM
+=head1 SUPPORTED OPERATING SYSTEM
 
-This module has been tested on these OSes.
+Earlier versions of this module were tested on these OSes:
 
 =over 4
 
-=item * Mac OS 9
+=item Mac OS 9
 
 with MacPerl5.6.1r1 built for PowerPC
 
-=item * Mac OS X
+=item Mac OS X
 
 with perl v5.6.0 built for darwin
 
-=item * Windows2000
+=item Windows 2000
 
 with ActivePerl5.6.1 build631.
 
-=item * FreeBSD 4.6
+=item FreeBSD 4.6
 
 with perl v5.6.1 built for i386-freebsd
 
-=item * FreeBSD 3.4
+=item FreeBSD 3.4
 
 with perl v5.6.1 built for i386-freebsd
 
 with perl v5.005_03 built for i386-freebsd
 
-=item * Linux
+=item Linux
 
 with perl v5.005_03 built for ppc-linux
 
-=item * Solaris 2.6 (SPARC)
+=item Solaris 2.6 (SPARC)
 
 with perl5.6.1 built for sun4-solaris.
 
-with perl5.004_04 built for sun4-solaris.
-
-Can use on Solaris2.6 with perl5.004_04, although I<make test> is failure.
-
 =back
 
-
-=head1 LIMITATION
+=head1 LIMITATIONS
 
 =over 4
 
-=item * Can't use 'crypt' authentication in a part of FreeBSD.
+=item *
 
-=item * Can't use the 'Kerberos v4/5' authentication.
+Can't use 'crypt' authentication in a part of FreeBSD.
 
-=item * Can't use the SSL Connection.
+=item *
 
-=item * Can't use BLOB data.
+Can't use the 'Kerberos v4/5' authentication.
+
+=item *
+
+Can't use the SSL Connection.
+
+=item *
+
+Can't use BLOB data.
 
 =back
 
@@ -1835,20 +1843,23 @@ Can use on Solaris2.6 with perl5.004_04, although I<make test> is failure.
 
 This module requires these other modules and libraries:
 
-  L<DBI>, L<IO::Socket>
+L<DBI>, L<IO::Socket>
 
 
 =head1 TODO
 
 =over 4
 
-=item * Add the original crypt (pure perl) method.
+=item *
+
+Add the original crypt (pure perl) method.
 
 =back
 
 =head1 SEE ALSO
 
-L<DBI>, L<http://developer.postgresql.org/docs/postgres/protocol.html>
+L<DBI>, L<DBD::Pg>,
+L<http://developer.postgresql.org/docs/postgres/protocol.html>
 
 =head1 AUTHOR
 
@@ -1856,8 +1867,9 @@ Hiroyuki OYAMA E<lt>oyama@module.jpE<gt>
 
 =head1 COPYRIGHT AND LICENCE
 
-Copyright (C) 2004 Hiroyuki OYAMA. Japan. All rights reserved.
+Copyright (C) 2004 Hiroyuki OYAMA.  All rights reserved.
 
-This library is free software; you can redistribute it and/or modify it under the same terms as Perl itself.
+This library is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
 
 =cut

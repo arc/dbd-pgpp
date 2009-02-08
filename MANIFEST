@@ -16,4 +16,5 @@ t/old/99.cleanup.t
 t/new/00basic.t
 t/new/01connect.t
 t/new/10fetch.t
+t/new/11nested.t
 script/pgsql.pl

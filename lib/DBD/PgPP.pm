@@ -363,17 +363,21 @@ sub execute
 		$sth->{pgpp_record_iterator} = $pgsql_sth;
 		my $dbh = $sth->{Database};
 
-		if (defined $pgsql->{affected_rows}) {
-			$sth->{pgpp_rows} = $pgsql->{affected_rows};
-			$result = $pgsql->{affected_rows};
+		if (defined $pgsql_sth->{affected_rows}) {
+			$sth->{pgpp_rows} = $pgsql_sth->{affected_rows};
+			$result = $pgsql_sth->{affected_rows};
 		}
 		else {
 			$sth->{pgpp_rows} = 0;
-			$result = $pgsql->{affected_rows};
+			$result = $pgsql_sth->{affected_rows};
 		}
-		if ($pgsql->{row_description}) {
-			$sth->STORE(NUM_OF_FIELDS => scalar @{$pgsql->{row_description}});
-			$sth->STORE(NAME => [ map {$_->{name}} @{$pgsql->{row_description}} ]);
+		if (!$pgsql_sth->{row_description}) {
+			$sth->STORE(NUM_OF_FIELDS => 0);
+			$sth->STORE(NAME          => []);
+		}
+		else {
+			$sth->STORE(NUM_OF_FIELDS => scalar @{$pgsql_sth->{row_description}});
+			$sth->STORE(NAME => [ map {$_->{name}} @{$pgsql_sth->{row_description}} ]);
 		}
 #		$pgsql->get_affected_rows_length;
 	};
@@ -427,24 +431,24 @@ sub FETCH
 
 sub STORE
 {
-	my $dbh = shift;
+	my $sth = shift;
 	my ($key, $value) = @_;
 
 	if ($key eq 'NAME') {
-		$dbh->{NAME} = $value;
+		$sth->{NAME} = $value;
 		return 1;
 	}
 	elsif ($key =~ /^pgpp_/) {
-		$dbh->{$key} = $value;
+		$sth->{$key} = $value;
 		return 1;
 	}
 	elsif ($key eq 'NUM_OF_FIELDS') {
 		# Don't set this twice; DBI doesn't seem to like it.
 		# XXX: why not?
-		my $curr = $dbh->FETCH($key);
+		my $curr = $sth->FETCH($key);
 		return 1 if $curr && $curr == $value;
 	}
-	return $dbh->SUPER::STORE($key, $value);
+	return $sth->SUPER::STORE($key, $value);
 }
 
 
@@ -497,7 +501,6 @@ sub new {
 		secret_key  => '',
 		selected_record => undef,
 		error_message => '',
-		affected_rows => undef,
 		last_oid      => undef,
 	}, $class;
 	$DEBUG = 1 if $args{debug};
@@ -695,12 +698,12 @@ sub execute {
 	}
 	if ($packet->is_cursor_response) {
 		$packet->compute($pgsql);
-		my $row_info = $stream->each();
+		my $row_info = $stream->each(); # fetch RowDescription
 		if ($row_info->is_error()) {
 			$self->_to_end_of_response($stream);
 			croak $row_info->get_message();
 		}
-		$row_info->compute($pgsql);
+		$row_info->compute($self);
 		$self->{stream} = DBD::PgPP::ReadOnlyPacketStream->new($handle);
 		$self->{stream}->set_buffer($stream->get_buffer);
 		while (1) {
@@ -710,15 +713,15 @@ sub execute {
 				$self->_to_end_of_response($stream);
 				croak $tmp_packet->get_message();
 			}
-			$tmp_packet->compute($pgsql);
+			$tmp_packet->compute($self);
 			last if $tmp_packet->is_end_of_response;
 		}
 		$self->{stream}->rewind();
 		$stream->set_buffer('');
 		return;
 	}
-	else {
-		$packet->compute($pgsql);
+	else {                  # CompletedResponse
+		$packet->compute($self);
 		$self->{finish} = 1;
 		while (1) {
 			my $end = $stream->each();
@@ -759,7 +762,7 @@ sub fetch
 		printf "%s\n", ref $packet if $DBD::PgPP::Protocol::DEBUG;
 		warn $packet->get_message() if $packet->is_error;
 		return undef if $packet->is_end_of_response;
-		$packet->compute($pgsql);
+		$packet->compute($self);
 		my $result =  $packet->get_result();
 		return $result if $result;
 	}
@@ -1475,13 +1478,10 @@ sub new {
 sub compute
 {
 	my $self = shift;
-	my $pgsql = shift;
+	my $pgsql_sth = shift;
 
-	$pgsql->{row_description} = $self->{row_description};
+	$pgsql_sth->{row_description} = $self->{row_description};
 }
-
-
-sub is_cursor_response { 1 }
 
 
 
@@ -1500,10 +1500,10 @@ sub new {
 sub compute
 {
 	my $self = shift;
-	my $pgsql = shift;
+	my $pgsql_sth = shift;
 	my $stream = $self->{stream};
 
-	my $fields_length = scalar @{$pgsql->{row_description}};
+	my $fields_length = scalar @{$pgsql_sth->{row_description}};
 
 	my $bitmap_length = $self->_get_length_of_null_bitmap($fields_length);
 	my $non_null = unpack 'B*', $stream->_get_byte($bitmap_length);
@@ -1513,7 +1513,7 @@ sub compute
 		if (substr $non_null, $i, 1) {
 			my $length = $stream->_get_int32();
 			$value = $stream->_get_byte($length - 4);
-			my $type_oid = $pgsql->{row_description}[$i]{type};
+			my $type_oid = $pgsql_sth->{row_description}[$i]{type};
 			if ($type_oid == 16) { # bool
 				$value = ($value eq 'f') ? 0 : 1;
 			}
@@ -1573,18 +1573,18 @@ sub get_tag {
 sub compute
 {
 	my $self = shift;
-	my $pgsql = shift;
+	my $pgsql_sth = shift;
 	my $tag = $self->{tag};
 
 	if ($tag =~ /^INSERT (\d+) (\d+)/) {
-		$pgsql->{affected_oid}  = $1;
-		$pgsql->{affected_rows} = $2;
+		$pgsql_sth->{affected_oid}  = $1;
+		$pgsql_sth->{affected_rows} = $2;
 	}
 	elsif ($tag =~ /^DELETE (\d+)/) {
-		$pgsql->{affected_rows} = $1;
+		$pgsql_sth->{affected_rows} = $1;
 	}
 	elsif ($tag =~ /^UPDATE (\d+)/) {
-		$pgsql->{affected_rows} = $1;
+		$pgsql_sth->{affected_rows} = $1;
 	}
 }
 

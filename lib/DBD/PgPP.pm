@@ -1023,18 +1023,22 @@ sub _get_int16 {
 sub _get_c_string {
 	my $self = shift;
 
-	my $length = 0;
+	my $null_pos;
 	while (1) {
-		$length = index $self->{buffer}, "\0";
-		last if $length >= 0;
+		$null_pos = index $self->{buffer}, "\0";
+		last if $null_pos >= 0;
 		$self->_if_short_then_add_buffer(1 + length $self->{buffer});
 	}
-	my $result = substr $self->{buffer}, 0, $length;
-	$self->{buffer} = substr $self->{buffer}, $length + 1;
+	my $result = substr $self->{buffer}, 0, $null_pos;
+	$self->{buffer} = substr $self->{buffer}, $null_pos + 1;
 	return $result;
 }
 
 
+# This method (and its ReadOnly counterpart) mean "I'm about to read *this*
+# many bytes from (the appropriate position in) the buffer, so make sure
+# there are enough bytes available".  That is, on exit, you are guaranteed
+# that $length bytes are available.
 sub _if_short_then_add_buffer {
 	my $self = shift;
 	my $length = shift || 0;
@@ -1126,33 +1130,39 @@ sub _get_int16 {
 	my $self = shift;
 	$self->_if_short_then_add_buffer(2);
 	my $result = unpack 'n', substr $self->{buffer}, $self->{position}, 2;
-	$self->{buffer} += 2;
+	$self->{position} += 2;
 	return $result;
 }
 
 
 sub _get_c_string {
 	my $self = shift;
-	my $length = 0;
+
+	my $null_pos;
 	while (1) {
-		$length = index($self->{buffer}, "\0", $self->{position}) - $self->{position};
-		last if $length >= 0;
-		$self->_if_short_then_add_buffer(1 + length $self->{buffer});
+		$null_pos = index $self->{buffer}, "\0", $self->{position};
+                last if $null_pos >= 0;
+		$self->_if_short_then_add_buffer(1 + length($self->{buffer}) - $self->{position});
 	}
-	my $result = substr $self->{buffer}, $self->{position}, $length;
-	$self->{position} += $length + 1;
+	my $result = substr $self->{buffer}, $self->{position}, $null_pos - $self->{position};
+	$self->{position} += 1 + length $result; # 1 for the trailing \0
 	return $result;
 }
 
 
+# This method (and its non-ReadOnly counterpart) mean "I'm about to read
+# *this* many bytes from the appropriate position in the buffer, so make
+# sure there are enough bytes available".  That is, on exit, you are
+# guaranteed that $length bytes are available.
 sub _if_short_then_add_buffer {
 	my $self = shift;
 	my $length = shift || 0;
 
-	return if (length($self->{buffer}) - $self->{position}) >= $length;
-
 	my $handle = $self->{handle};
-        while (length($self->{buffer}) - $self->{position} < $length) {
+        while (1) {
+            my $available = length($self->{buffer}) - $self->{position};
+            my $required = $length - $available;
+            last if $required < 1;
             my $packet = '';
             $handle->recv($packet, 1500, 0);
             DBD::PgPP::Protocol::_dump_packet($packet);

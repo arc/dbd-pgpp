@@ -26,14 +26,15 @@ my $db = DBI->connect($ENV{DBI_DSN}, $ENV{DBI_USER}, $ENV{DBI_PASS},
 ok(defined $db, "Connect to database for testing result fetches");
 
 
-Length: for (@len) {
-  SKIP: {
-        skip "Not testing for infinite-loop bug with length $_", 3
-            if $bad_len{$_};
+for (@len) {
+    my $value = $db->selectrow_array(qq[SELECT Repeat('a', $_)]);
+    ok(defined $value, "Long result row returned ($_)");
 
-        my $value = $db->selectrow_array(qq[SELECT Repeat('a', $_)]);
-        ok(defined $value, "Long result row returned ($_)");
-        is(length $value, $_, "Long result row has correct length ($_)");
-        is($value, 'a' x $_, "Long result row of $_ bytes has correct value");
-    }
+    # We avoid testing the fetched value against the expected one directly,
+    # because in verbose mode we end up with ginormous strings being dumped
+    # to your terminal as the "expected" value.  Instead, just check that
+    # every value is "suitable" (contains nothing but 'a'), and that it has
+    # the right length; those two together test that it's the expected value.
+    like($value, qr/^a*\z/, "Long result row of $_ bytes has suitable value");
+    is(length $value, $_, "Long result row has correct length ($_)");
 }

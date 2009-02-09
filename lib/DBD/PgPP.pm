@@ -996,27 +996,21 @@ sub _get_byte {
 	$length = 1 unless defined $length;
 
 	$self->_if_short_then_add_buffer($length);
-	my $result = substr $self->{buffer}, 0, $length;
-	$self->{buffer} = substr $self->{buffer}, $length;
-	return $result;
+	return substr $self->{buffer}, 0, $length, '';
 }
 
 
 sub _get_int32 {
 	my $self = shift;
 	$self->_if_short_then_add_buffer(4);
-	my $result = unpack 'N', substr $self->{buffer}, 0, 4;
-	$self->{buffer} = substr $self->{buffer}, 4;
-	return $result;
+	return unpack 'N', substr $self->{buffer}, 0, 4, '';
 }
 
 
 sub _get_int16 {
 	my $self = shift;
 	$self->_if_short_then_add_buffer(2);
-	my $result = unpack 'n', substr $self->{buffer}, 0, 2;
-	$self->{buffer} = substr $self->{buffer}, 2;
-	return $result;
+	return unpack 'n', substr $self->{buffer}, 0, 2, '';
 }
 
 
@@ -1029,8 +1023,8 @@ sub _get_c_string {
 		last if $null_pos >= 0;
 		$self->_if_short_then_add_buffer(1 + length $self->{buffer});
 	}
-	my $result = substr $self->{buffer}, 0, $null_pos;
-	$self->{buffer} = substr $self->{buffer}, $null_pos + 1;
+	my $result = substr $self->{buffer}, 0, $null_pos, '';
+	substr $self->{buffer}, 0, 1, ''; # remove trailing \0
 	return $result;
 }
 

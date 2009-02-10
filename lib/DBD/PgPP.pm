@@ -26,6 +26,8 @@ $errstr = '';
 $state = undef;
 $drh = undef;
 
+my $BUFFER_LEN = 1500;
+
 sub driver
 {
 	return $drh if $drh;
@@ -471,7 +473,6 @@ $VERSION = '0.05';
 use constant DEFAULT_UNIX_SOCKET => '/tmp';
 use constant DEFAULT_PORT_NUMBER => 5432;
 use constant DEFAULT_TIMEOUT     => 60;
-use constant BUFFER_LENGTH       => 1500;
 
 use constant AUTH_OK                 => 0;
 use constant AUTH_KERBEROS_V4        => 1;
@@ -1080,7 +1081,7 @@ sub _if_short_then_add_buffer {
         while (length($self->{buffer}) < $length) {
             my $required = $length - length $self->{buffer};
             my $packet = '';
-            $handle->recv($packet, $required, 0);
+            $handle->recv($packet, $BUFFER_LEN, 0);
             DBD::PgPP::Protocol::_dump_packet($packet);
             $self->{buffer} .= $packet;
 	}
@@ -1195,7 +1196,7 @@ sub _if_short_then_add_buffer {
             my $required = $length - $available;
             last if $required < 1;
             my $packet = '';
-            $handle->recv($packet, 1500, 0);
+            $handle->recv($packet, $BUFFER_LEN, 0);
             DBD::PgPP::Protocol::_dump_packet($packet);
             $self->{buffer} .= $packet;
 	}

@@ -14,7 +14,7 @@ my %bad_len = map { $_ => 1 } 1487, 2987, 4487;
 push @len, sort keys %bad_len;
 
 if (defined $ENV{DBI_DSN}) {
-    plan tests => 4 + 3 * @len;
+    plan tests => 5 + 3 * @len;
 }
 else {
     plan skip_all => 'Cannot run test unless DBI_DSN is defined. See the README file.';
@@ -24,6 +24,11 @@ my $db = DBI->connect($ENV{DBI_DSN}, $ENV{DBI_USER}, $ENV{DBI_PASS},
                        {RaiseError => 0, PrintError => 0, AutoCommit => 1});
 
 ok(defined $db, "Connect to database for testing result fetches");
+
+# XXX: This test only works on recent-enough versions of PostgreSQL, which
+# give a warning for string literals that use backslashes
+ok($db->do(q[SELECT ? AS a], undef, '\\'),
+   'Syntax warning is handled correctly');
 
 {
     # This tests assembling parsed statements and query arguments into whole

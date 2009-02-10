@@ -633,10 +633,14 @@ sub execute {
         $self->{finish} = 1;
         return;
     }
-    if ($packet->is_empty) {
+    elsif ($packet->is_empty) {
         $self->{finish} = 1;
         $self->_to_end_of_response($stream);
         return;
+    }
+    while ($packet->is_notice_response) {
+        # discard it for now
+        $packet = $stream->each;
     }
     if ($packet->is_cursor_response) {
         $packet->compute($pgsql);
@@ -1050,6 +1054,7 @@ sub is_error           { undef }
 sub is_end_of_response { undef }
 sub get_result         { undef }
 sub is_cursor_response { undef }
+sub is_notice_response { undef }
 
 
 package DBD::PgPP::AuthenticationOk;
@@ -1211,7 +1216,8 @@ sub is_error    { 1 }
 package DBD::PgPP::NoticeResponse;
 use base qw<DBD::PgPP::ErrorResponse>;
 
-sub is_error { undef }
+sub is_error           { undef }
+sub is_notice_response { 1 }
 
 
 package DBD::PgPP::NotificationResponse;

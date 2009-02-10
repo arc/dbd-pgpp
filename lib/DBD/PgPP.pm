@@ -2,7 +2,7 @@ package DBD::PgPP;
 use strict;
 
 use DBI;
-use Carp;
+use Carp ();
 use IO::Socket ();
 use vars qw<$VERSION $err $errstr $state $drh>;
 
@@ -273,8 +273,6 @@ sub DESTROY {
 
 package DBD::PgPP::st;
 
-use Carp qw<croak>;
-
 $DBD::PgPP::st::imp_data_size = 0;
 
 sub bind_param {
@@ -393,7 +391,6 @@ sub DESTROY { return }
 
 package DBD::PgPP::Protocol;
 
-use Carp;
 use vars qw<$VERSION $DEBUG>;
 $VERSION = '0.05';
 
@@ -467,14 +464,14 @@ sub _connect {
             PeerPort => $self->{port},
             Proto    => 'tcp',
             Timeout  => $self->{timeout},
-        ) or croak "Couldn't connect to $self->{hostname}:$self->{port}/tcp: $@";
+        ) or Carp::croak("Couldn't connect to $self->{hostname}:$self->{port}/tcp: $@");
     }
     else {
         (my $path = $self->{path}) =~ s{/*\z}{/.s.PGSQL.$self->{port}};
         $sock = IO::Socket::UNIX->new(
             Type => IO::Socket::SOCK_STREAM,
             Peer => $path,
-        ) or croak "Couldn't connect to $path: $@";
+        ) or Carp::croak("Couldn't connect to $path: $@");
     }
     $sock->autoflush(1);
     $self->{socket} = $sock;
@@ -535,7 +532,7 @@ sub _do_authentication {
         my $packet = $stream->each;
         printf "Receive %s\n", ref($packet) if $DEBUG;
         last if $packet->is_end_of_response;
-        croak $packet->get_message if $packet->is_error;
+        Carp::croak($packet->get_message) if $packet->is_error;
         $packet->compute($self);
     }
 }
@@ -597,7 +594,6 @@ sub parse_statement {
 
 
 package DBD::PgPP::ProtocolStatement;
-use Carp;
 
 sub new {
     my ($class, $pgsql, $statement) = @_;
@@ -647,7 +643,7 @@ sub execute {
         my $row_info = $stream->each; # fetch RowDescription
         if ($row_info->is_error) {
             $self->_to_end_of_response($stream);
-            croak $row_info->get_message;
+            Carp::croak($row_info->get_message);
         }
         $row_info->compute($self);
         $self->{stream} = DBD::PgPP::ReadOnlyPacketStream->new($handle);
@@ -658,7 +654,7 @@ sub execute {
                 if $DBD::PgPP::Protocol::DEBUG;
             if ($tmp_packet->is_error) {
                 $self->_to_end_of_response($stream);
-                croak $tmp_packet->get_message;
+                Carp::croak($tmp_packet->get_message);
             }
             $tmp_packet->compute($self);
             last if $tmp_packet->is_end_of_response;
@@ -675,7 +671,7 @@ sub execute {
             printf "-Receive %s\n", ref($end) if $DBD::PgPP::Protocol::DEBUG;
             if ($end->is_error) {
                 $self->_to_end_of_response($stream);
-                croak $end->get_message;
+                Carp::croak($end->get_message);
             }
             last if $end->is_end_of_response;
         }
@@ -714,8 +710,6 @@ sub fetch {
 
 
 package DBD::PgPP::PacketStream;
-
-use Carp;
 
 # Message Identifiers
 use constant ASCII_ROW             => 'D';
@@ -777,7 +771,7 @@ sub each {
          : $type eq NOTIFICATION_RESPONSE ? $self->_each_notification_response
          : $type eq READY_FOR_QUERY       ? $self->_each_ready_for_query
          : $type eq ROW_DESCRIPTION       ? $self->_each_row_description
-         :         croak "Unknown message type: '$type'";
+         :         Carp::croak("Unknown message type: '$type'");
 }
 
 sub _each_authentication {
@@ -808,7 +802,7 @@ sub _each_authentication {
         return DBD::PgPP::AuthenticationSCMCredential->new;
     }
     else {
-        croak "Unknown authentication type: $code";
+        Carp::croak("Unknown authentication type: $code");
     }
 }
 
@@ -938,7 +932,6 @@ sub _if_short_then_add_buffer {
 
 package DBD::PgPP::ReadOnlyPacketStream;
 use base qw<DBD::PgPP::PacketStream>;
-use Carp;
 
 # Message Identifiers
 use constant ASCII_ROW             => 'D';
@@ -1063,16 +1056,14 @@ use base qw<DBD::PgPP::Response>;
 
 package DBD::PgPP::AuthenticationKerberosV4;
 use base qw<DBD::PgPP::Response>;
-use Carp;
 
-sub compute { croak "authentication type 'Kerberos V4' not supported.\n" }
+sub compute { Carp::croak("authentication type 'Kerberos V4' not supported.\n") }
 
 
 package DBD::PgPP::AuthenticationKerberosV5;
 use base qw<DBD::PgPP::Response>;
-use Carp;
 
-sub compute { croak "authentication type 'Kerberos V5' not supported.\n" }
+sub compute { Carp::croak("authentication type 'Kerberos V5' not supported.\n") }
 
 
 package DBD::PgPP::AuthenticationCleartextPassword;
@@ -1091,7 +1082,6 @@ sub compute {
 
 package DBD::PgPP::AuthenticationCryptPassword;
 use base qw<DBD::PgPP::Response>;
-use Carp;
 
 sub new {
     my ($class, $salt) = @_;
@@ -1121,9 +1111,8 @@ sub _encode_crypt {
         $crypted = crypt($password, $salt);
         die "is MD5 crypt()" if _is_md5_crypt($crypted, $salt);
     };
-    if ($@) {
-        croak "authentication type 'crypt' not supported on your platform. please use  'trust' or 'md5' or 'ident' authentication";
-    }
+    Carp::croak("authentication type 'crypt' not supported on your platform. please use  'trust' or 'md5' or 'ident' authentication")
+          if $@;
     return $crypted;
 }
 
@@ -1135,7 +1124,6 @@ sub _is_md5_crypt {
 
 package DBD::PgPP::AuthenticationMD5Password;
 use base qw<DBD::PgPP::AuthenticationCryptPassword>;
-use Carp;
 
 sub new {
     my ($class, $salt) = @_;
@@ -1172,9 +1160,8 @@ sub _encode_md5 {
 
 package DBD::PgPP::AuthenticationSCMCredential;
 use base qw<DBD::PgPP::Response>;
-use Carp;
 
-sub compute { croak "authentication type 'SCM Credential' not supported.\n" }
+sub compute { Carp::croak("authentication type 'SCM Credential' not supported.\n") }
 
 
 package DBD::PgPP::BackendKeyData;
@@ -1330,7 +1317,6 @@ sub is_cursor_response { 1 }
 
 package DBD::PgPP::CompletedResponse;
 use base qw<DBD::PgPP::Response>;
-use Carp;
 
 sub new {
     my ($class, $tag) = @_;

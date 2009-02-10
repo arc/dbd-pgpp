@@ -192,12 +192,14 @@ sub prepare
 	my $dbh = shift;
 	my ($statement, @attribs) = @_;
 
-	my $sth = DBI::_new_sth($dbh, {
-		Statement => $statement,
-	});
-	$sth->STORE(pgpp_handle => $dbh->FETCH('pgpp_connection'));
+	my $pgsql = $dbh->FETCH('pgpp_connection');
+	my $parsed = $pgsql->parse_statement($statement);
+
+	my $sth = DBI::_new_sth($dbh, { Statement => $statement });
+	$sth->STORE(pgpp_parsed_stmt => $parsed);
+	$sth->STORE(pgpp_handle => $pgsql);
 	$sth->STORE(pgpp_params => []);
-	$sth->STORE(NUM_OF_PARAMS => ($statement =~ tr/?//));
+	$sth->STORE(NUM_OF_PARAMS => scalar grep { ref } @$parsed);
 	$sth;
 }
 
@@ -347,18 +349,16 @@ sub execute
 	if (@$params != $num_param) {
 		# ...
 	}
-	my $statement = $sth->{Statement};
-	for (my $i = 0; $i < $num_param; $i++) {
-		my $dbh = $sth->{Database};
-		my $quoted_param = $dbh->quote($params->[$i]);
-		$statement =~ s/\?/$quoted_param/e;
-	}
+	my $dbh = $sth->{Database};
+	my $parsed_statement = $sth->FETCH('pgpp_parsed_stmt');
+	my $expanded_statement = join '',
+            map { ref() ? $dbh->quote($params->[$$_]) : $_ } @$parsed_statement;
 	my $pgsql = $sth->FETCH('pgpp_handle');
         die "execute on disconnected database" if $pgsql->{closed};
 	my $result;
 	eval {
 		$sth->{pgpp_record_iterator} = undef;
-		my $pgsql_sth = $pgsql->prepare($statement);
+		my $pgsql_sth = $pgsql->prepare($expanded_statement);
 		$pgsql_sth->execute();
 		$sth->{pgpp_record_iterator} = $pgsql_sth;
 		my $dbh = $sth->{Database};
@@ -649,6 +649,43 @@ sub get_error_message {
 	return $self->{error_message};
 }
 
+sub parse_statement {
+    my ($invocant, $statement) = @_;
+
+    my $param_num = 0;
+    my $comment_depth = 0;
+    my @tokens = ('');
+  Parse: for ($statement) {
+        # Observe the default action at the end
+        if    (m{\G \z}xmsgc) { last Parse }
+        elsif (m{\G( /\* .*? ) (?= /\* | \*/) }xmsgc) { $comment_depth++ }
+        elsif ($comment_depth && m{\G( .*? ) (?= /\* | \*/)}xmsgc) { }
+        elsif ($comment_depth && m{\G( \*/ )}xmsgc)   { $comment_depth-- }
+        elsif (m{\G \?}xmsgc) {
+            pop @tokens if $tokens[-1] eq '';
+            push @tokens, \(my $tmp = $param_num++), '';
+            redo Parse;
+        }
+        elsif (m{\G( -- [^\n]* )}xmsgc) { }
+        elsif (m{\G( \' (?> [^\\\']* (?> \\. [^\\\']*)* ) \' )}xmsgc) { }
+        elsif (m{\G( \" [^\"]* \" )}xmsgc) { }
+        elsif (m{\G( \s+ | \w+ | ::? | \$[0-9]+ | [-/*\$]
+                 | [^[:ascii:]]+ | [\0-\037\177]+)}xmsgc) { }
+        elsif (m{\G( [+<>=~!\@\#%^&|`,;.()\[\]{}]+ )}xmsgc) { }
+        elsif (m{\G( [\'\"\\] )}xmsgc) { } # unmatched: a bug in your query
+        else {
+            my $pos = pos;
+            die "BUG: can't parse statement at $pos\n$statement\n";
+        }
+
+        $tokens[-1] .= $1;
+        redo Parse;
+    }
+
+    pop @tokens if @tokens > 1 && $tokens[-1] eq '';
+
+    return \@tokens;
+}
 
 
 package DBD::PgPP::ProtocolStatement;

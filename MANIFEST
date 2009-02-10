@@ -17,4 +17,5 @@ t/new/00basic.t
 t/new/01connect.t
 t/new/10fetch.t
 t/new/11nested.t
+t/new/13statement_parse.t
 script/pgsql.pl

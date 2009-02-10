@@ -14,7 +14,7 @@ my %bad_len = map { $_ => 1 } 1487, 2987, 4487;
 push @len, sort keys %bad_len;
 
 if (defined $ENV{DBI_DSN}) {
-    plan tests => 1 + 3 * @len;
+    plan tests => 4 + 3 * @len;
 }
 else {
     plan skip_all => 'Cannot run test unless DBI_DSN is defined. See the README file.';
@@ -25,6 +25,31 @@ my $db = DBI->connect($ENV{DBI_DSN}, $ENV{DBI_USER}, $ENV{DBI_PASS},
 
 ok(defined $db, "Connect to database for testing result fetches");
 
+{
+    # This tests assembling parsed statements and query arguments into whole
+    # statements
+    my $data = $db->selectall_arrayref(q[
+        SELECT ? AS a, ? AS b, ? AS c
+    ], {Slice => {}}, 'a', 'b', undef);
+    is_deeply($data, [{a => 'a', b => 'b', c => undef}],
+              'Three-param statement returns correct data');
+}
+
+{
+    my $data = $db->selectall_arrayref(
+        q[SELECT /* ? */ '?' AS "a?", ? AS b], {Slice => {}}, 'b?');
+    is_deeply($data, [{'a?' => '?', b => 'b?'}],
+              'Literal and commented "?" parsed correctly');
+}
+
+{
+    # This tests that argument values containing "?" don't affect parsing; see
+    # https://rt.cpan.org/Ticket/Display.html?id=23900
+    my $data = $db->selectall_arrayref(
+        q[SELECT ? AS a, ? AS b], {Slice => {}}, 'a?', 'b');
+    is_deeply($data, [{a => 'a?', b => 'b'}],
+              'Arg with "?" returns correct data');
+}
 
 for (@len) {
     my $value = $db->selectrow_array(qq[SELECT Repeat('a', $_)]);

@@ -14,7 +14,7 @@ my %bad_len = map { $_ => 1 } 1487, 2987, 4487;
 push @len, sort keys %bad_len;
 
 if (defined $ENV{DBI_DSN}) {
-    plan tests => 9 + 3 * @len;
+    plan tests => 11 + 3 * @len;
 }
 else {
     plan skip_all => 'Cannot run test unless DBI_DSN is defined. See the README file.';
@@ -68,6 +68,18 @@ ok($db->do(q[SELECT ? AS a], undef, '\\'),
 {
     my $data = $db->selectall_arrayref(q[SELECT '\\\\000\\\\001'::bytea AS a]);
     is_deeply($data, [["\000\001"]], 'Bytea demangling works');
+}
+
+{
+    my $st = $db->prepare(q[SELECT ? AS a]);
+
+    $st->bind_param(1, 'foo');
+    $st->execute;
+    is_deeply($st->fetchall_arrayref, [['foo']], 'trivial bind_param');
+
+    $st->bind_param(1, 'foo', 25); # type with OID 25 is text
+    $st->execute;
+    is_deeply($st->fetchall_arrayref, [['foo']], 'minimal typed bind_param');
 }
 
 for (@len) {

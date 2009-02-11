@@ -276,35 +276,37 @@ $DBD::PgPP::st::imp_data_size = 0;
 sub bind_param {
     my ($sth, $index, $value, $attr) = @_;
     my $type = ref($attr) ? $attr->{TYPE} : $attr;
-    if ($type) {
-        my $dbh = $sth->{Database};
-        $value = $dbh->quote($sth, $type); # XXX: $sth here?  $value, surely!
-    }
-    my $params = $sth->FETCH('pgpp_param');
-    $params->[$index - 1] = $value;
+    my $dbh = $sth->{Database};
+    my $params = $sth->FETCH('pgpp_params');
+    $params->[$index - 1] = $dbh->quote($value, $type);
 }
 
 sub execute {
-    my ($sth, @bind_values) = @_;
-
-    my $params = @bind_values ? \@bind_values : $sth->FETCH('pgpp_params');
-    my $num_param = $sth->FETCH('NUM_OF_PARAMS');
-    if (@$params != $num_param) {
-        # XXX: throw exception
-    }
-
-    my $dbh = $sth->{Database};
-    my $parsed_statement = $sth->FETCH('pgpp_parsed_stmt');
-    my $expanded_statement = join '',
-        map { ref() ? $dbh->quote($params->[$$_]) : $_ } @$parsed_statement;
+    my ($sth, @args) = @_;
 
     my $pgsql = $sth->FETCH('pgpp_handle');
     die "execute on disconnected database" if $pgsql->{closed};
 
+    my $num_params = $sth->FETCH('NUM_OF_PARAMS');
+
+    if (@args) {
+        my $dbh = $sth->{Database};
+        $_ = $dbh->quote($_) for @args;
+    }
+    else {
+        my $bind_params = $sth->FETCH('pgpp_params');
+
+        # They've already been quoted by ->bind_param
+        @args = @$bind_params;
+    }
+
+    my $parsed_statement = $sth->FETCH('pgpp_parsed_stmt');
+    my $statement = join '', map { ref() ? $args[$$_] : $_ } @$parsed_statement;
+
     my $result;
     eval {
         $sth->{pgpp_record_iterator} = undef;
-        my $pgsql_sth = $pgsql->prepare($expanded_statement);
+        my $pgsql_sth = $pgsql->prepare($statement);
         $pgsql_sth->execute;
         $sth->{pgpp_record_iterator} = $pgsql_sth;
         my $dbh = $sth->{Database};

@@ -23,6 +23,11 @@ our $VERSION = '0.05';
 my $BUFFER_LEN = 1500;
 my $DEBUG;
 
+my %BYTEA_DEMANGLE = (
+    '\\' => '\\',
+    map { sprintf('%03o', $_) => chr $_ } 0 .. 255,
+);
+
 {
     my $drh;
     sub driver {
@@ -1157,9 +1162,7 @@ sub compute {
                 $value = ($value eq 'f') ? 0 : 1;
             }
             elsif ($type_oid == 17) { # bytea
-                $value =~ s{\\(\\|[0-7]{3})}{
-                    $1 eq '\\' ? '\\' : chr oct $1
-                }ge;
+                $value =~ s{\\(\\|[0-7]{3})}{$BYTEA_DEMANGLE{$1}}g;
             }
         }
         push @result, $value;

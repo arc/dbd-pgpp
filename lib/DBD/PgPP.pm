@@ -463,14 +463,14 @@ sub _connect {
             PeerPort => $self->{port},
             Proto    => 'tcp',
             Timeout  => $self->{timeout},
-        ) or Carp::croak("Couldn't connect to $self->{hostname}:$self->{port}/tcp: $@");
+        ) or Carp::croak("Couldn't connect to $self->{hostname}:$self->{port}/tcp: $!");
     }
     else {
         (my $path = $self->{path}) =~ s{/*\z}{/.s.PGSQL.$self->{port}};
         $sock = IO::Socket::UNIX->new(
             Type => IO::Socket::SOCK_STREAM,
             Peer => $path,
-        ) or Carp::croak("Couldn't connect to $path: $@");
+        ) or Carp::croak("Couldn't connect to $path: $!");
     }
     $sock->autoflush(1);
     $self->{socket} = $sock;

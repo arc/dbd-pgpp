@@ -894,11 +894,8 @@ sub _if_short_then_add_buffer {
     my ($self, $length) = @_;
     $length ||= 0;
 
-    return if length($self->{buffer}) >= $length;
-
     my $handle = $self->{handle};
     while (length($self->{buffer}) < $length) {
-        my $required = $length - length $self->{buffer};
         my $packet = '';
         $handle->recv($packet, $BUFFER_LEN, 0);
         DBD::PgPP::Protocol::_dump_packet($packet);

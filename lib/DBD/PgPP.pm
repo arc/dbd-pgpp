@@ -1487,44 +1487,6 @@ pg_hba.conf and pg_passwd for the various types of authentication.
 
 =back
 
-=head1 SUPPORTED OPERATING SYSTEM
-
-Earlier versions of this module were tested on these OSes:
-
-=over 4
-
-=item Mac OS 9
-
-with MacPerl5.6.1r1 built for PowerPC
-
-=item Mac OS X
-
-with perl v5.6.0 built for darwin
-
-=item Windows 2000
-
-with ActivePerl5.6.1 build631.
-
-=item FreeBSD 4.6
-
-with perl v5.6.1 built for i386-freebsd
-
-=item FreeBSD 3.4
-
-with perl v5.6.1 built for i386-freebsd
-
-with perl v5.005_03 built for i386-freebsd
-
-=item Linux
-
-with perl v5.005_03 built for ppc-linux
-
-=item Solaris 2.6 (SPARC)
-
-with perl5.6.1 built for sun4-solaris.
-
-=back
-
 =head1 LIMITATIONS
 
 =over 4

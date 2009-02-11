@@ -94,17 +94,12 @@ $DBD::PgPP::dr::imp_data_size = 0;
 sub connect {
     my ($drh, $dsn, $user, $password, $attrhash) = @_;
 
-    my $data_source_info = DBD::PgPP->_parse_dsn(
-        $dsn, ['database', 'host', 'port'],
-    );
+    my $data_source_info
+        = DBD::PgPP->_parse_dsn($dsn, ['database', 'host', 'port']);
     $user     ||= '';
     $password ||= '';
 
-    my $dbh = DBI::_new_dbh($drh, {
-        Name         => $dsn,
-        USER         => $user,
-        CURRENT_USRE => $user,
-    }, {});
+    my $dbh = DBI::_new_dbh($drh, { Name => $dsn, USER => $user }, {});
     eval {
         my $pgsql = DBD::PgPP::Protocol->new(
             hostname => $data_source_info->{host},

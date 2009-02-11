@@ -599,7 +599,7 @@ sub new {
     bless {
         postgres  => $pgsql,
         statement => $statement,
-        stream    => undef,
+        rows      => [],
     }, $class;
 }
 
@@ -614,6 +614,7 @@ sub execute {
     $handle->send($query_packet, 0);
     $self->{affected_rows} = 0;
     $self->{last_oid}      = undef;
+    $self->{rows}          = [];
 
     my $stream = $pgsql->get_stream;
     my $packet = $stream->each;
@@ -641,21 +642,18 @@ sub execute {
             Carp::croak($row_info->get_message);
         }
         $row_info->compute($self);
-        $self->{stream} = DBD::PgPP::ReadOnlyPacketStream->new($handle);
-        $self->{stream}->set_buffer($stream->get_buffer);
         while (1) {
-            my $tmp_packet = $self->{stream}->each;
-            printf "-Receive %s\n", ref($tmp_packet)
+            my $row_packet = $stream->each;
+            printf "-Receive %s\n", ref $row_packet
                 if $DBD::PgPP::Protocol::DEBUG;
-            if ($tmp_packet->is_error) {
+            if ($row_packet->is_error) {
                 $self->_to_end_of_response($stream);
-                Carp::croak($tmp_packet->get_message);
+                Carp::croak($row_packet->get_message);
             }
-            $tmp_packet->compute($self);
-            last if $tmp_packet->is_end_of_response;
+            $row_packet->compute($self);
+            push @{ $self->{rows} }, $row_packet->get_result;
+            last if $row_packet->is_end_of_response;
         }
-        $self->{stream}->rewind;
-        $stream->set_buffer('');
         return;
     }
     else {                      # CompletedResponse
@@ -685,19 +683,7 @@ sub _to_end_of_response {
 
 sub fetch {
     my ($self) = @_;
-
-    my $pgsql = $self->{postgres};
-    my $stream = $self->{stream};
-
-    while (1) {
-        my $packet = $stream->each;
-        printf "%s\n", ref $packet if $DBD::PgPP::Protocol::DEBUG;
-        warn $packet->get_message if $packet->is_error;
-        return undef if $packet->is_end_of_response;
-        $packet->compute($self);
-        my $result = $packet->get_result;
-        return $result if $result;
-    }
+    return shift @{ $self->{rows} }; # shift returns undef if empty
 }
 
 
@@ -901,10 +887,9 @@ sub _get_c_string {
     return $result;
 }
 
-# This method (and its ReadOnly counterpart) mean "I'm about to read *this*
-# many bytes from (the appropriate position in) the buffer, so make sure
-# there are enough bytes available".  That is, on exit, you are guaranteed
-# that $length bytes are available.
+# This method means "I'm about to read *this* many bytes from the buffer, so
+# make sure there are enough bytes available".  That is, on exit, you are
+# guaranteed that $length bytes are available.
 sub _if_short_then_add_buffer {
     my ($self, $length) = @_;
     $length ||= 0;
@@ -914,110 +899,6 @@ sub _if_short_then_add_buffer {
     my $handle = $self->{handle};
     while (length($self->{buffer}) < $length) {
         my $required = $length - length $self->{buffer};
-        my $packet = '';
-        $handle->recv($packet, $BUFFER_LEN, 0);
-        DBD::PgPP::Protocol::_dump_packet($packet);
-        $self->{buffer} .= $packet;
-    }
-}
-
-
-package DBD::PgPP::ReadOnlyPacketStream;
-use base qw<DBD::PgPP::PacketStream>;
-
-# Message Identifiers
-use constant ASCII_ROW             => 'D';
-use constant AUTHENTICATION        => 'R';
-use constant BACKEND_KEY_DATA      => 'K';
-use constant BINARY_ROW            => 'B';
-use constant COMPLETED_RESPONSE    => 'C';
-use constant COPY_IN_RESPONSE      => 'G';
-use constant COPY_OUT_RESPONSE     => 'H';
-use constant CURSOR_RESPONSE       => 'P';
-use constant EMPTY_QUERY_RESPONSE  => 'I';
-use constant ERROR_RESPONSE        => 'E';
-use constant FUNCTION_RESPONSE     => 'V';
-use constant NOTICE_RESPONSE       => 'N';
-use constant NOTIFICATION_RESPONSE => 'A';
-use constant READY_FOR_QUERY       => 'Z';
-use constant ROW_DESCRIPTION       => 'T';
-
-# Authentication Message Specifiers
-use constant AUTHENTICATION_OK                 => 0;
-use constant AUTHENTICATION_KERBEROS_V4        => 1;
-use constant AUTHENTICATION_KERBEROS_V5        => 2;
-use constant AUTHENTICATION_CLEARTEXT_PASSWORD => 3;
-use constant AUTHENTICATION_CRYPT_PASSWORD     => 4;
-use constant AUTHENTICATION_MD5_PASSWORD       => 5;
-use constant AUTHENTICATION_SCM_CREDENTIAL     => 6;
-
-sub new {
-    my ($class, $handle) = @_;
-    bless {
-        handle   => $handle,
-        buffer   => '',
-        position => 0,
-    }, $class;
-}
-
-sub rewind {
-    my ($self) = @_;
-    $self->{position} = 0;
-}
-
-sub _get_byte {
-    my ($self, $length) = @_;
-    $length = 1 if !defined $length;
-
-    $self->_if_short_then_add_buffer($length);
-    my $result = substr $self->{buffer}, $self->{position}, $length;
-    $self->{position} += $length;
-    return $result;
-}
-
-sub _get_int32 {
-    my ($self) = @_;
-    $self->_if_short_then_add_buffer(4);
-    my $result = unpack 'N', substr $self->{buffer}, $self->{position}, 4;
-    $self->{position} += 4;
-    return $result;
-}
-
-sub _get_int16 {
-    my ($self) = @_;
-    $self->_if_short_then_add_buffer(2);
-    my $result = unpack 'n', substr $self->{buffer}, $self->{position}, 2;
-    $self->{position} += 2;
-    return $result;
-}
-
-sub _get_c_string {
-    my ($self) = @_;
-
-    my $null_pos;
-    while (1) {
-        $null_pos = index $self->{buffer}, "\0", $self->{position};
-        last if $null_pos >= 0;
-        $self->_if_short_then_add_buffer(1 + length($self->{buffer}) - $self->{position});
-    }
-    my $result = substr $self->{buffer}, $self->{position}, $null_pos - $self->{position};
-    $self->{position} += 1 + length $result; # 1 for the trailing \0
-    return $result;
-}
-
-# This method (and its non-ReadOnly counterpart) mean "I'm about to read
-# *this* many bytes from the appropriate position in the buffer, so make
-# sure there are enough bytes available".  That is, on exit, you are
-# guaranteed that $length bytes are available.
-sub _if_short_then_add_buffer {
-    my ($self, $length) = @_;
-    $length ||= 0;
-
-    my $handle = $self->{handle};
-    while (1) {
-        my $available = length($self->{buffer}) - $self->{position};
-        my $required = $length - $available;
-        last if $required < 1;
         my $packet = '';
         $handle->recv($packet, $BUFFER_LEN, 0);
         DBD::PgPP::Protocol::_dump_packet($packet);

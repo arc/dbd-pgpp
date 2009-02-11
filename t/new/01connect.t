@@ -38,13 +38,9 @@ if ($@) {
 
 pass('Established a connection to the database');
 
-my $pgversion =''; #= DBD::Pg::_pg_server_version($dbh);
+my $pgversion = DBD::PgPP::pgpp_server_version($dbh);
 
-TODO: {
-    local $TODO = '_pg_server_version unimplemented';
-    like($pgversion, qr/^[\d\._]+$/,
-         "Found PostgreSQL version as $pgversion");
-}
+like($pgversion, qr/^[0-9._]+\z/, "Found PostgreSQL version as $pgversion");
 
 ok($dbh->disconnect, 'Disconnect from the database');
 
@@ -70,7 +66,7 @@ END {
     diag "\n".
      "Program       Version\n".
      "DBD::PgPP     $DBD::PgPP::VERSION\n".
-#     "PostgreSQL    $pgversion\n".
+     "PostgreSQL    $pgversion\n".
      "DBI           $DBI::VERSION";
 }
 

@@ -43,6 +43,10 @@ my %BYTEA_DEMANGLE = (
     }
 }
 
+sub pgpp_server_identification { $_[0]->FETCH('pgpp_connection')->{server_identification} }
+sub pgpp_server_version_num    { $_[0]->FETCH('pgpp_connection')->{server_version_num} }
+sub pgpp_server_version        { $_[0]->FETCH('pgpp_connection')->{server_version} }
+
 sub _parse_dsn {
     my ($class, $dsn, $args) = @_;
 
@@ -415,21 +419,24 @@ sub new {
     my ($class, %args) = @_;
 
     my $self = bless {
-        hostname        => $args{hostname},
-        path            => $args{path}     || DEFAULT_UNIX_SOCKET,
-        port            => $args{port}     || DEFAULT_PORT_NUMBER,
-        database        => $args{database} || $ENV{USER} || '',
-        user            => $args{user}     || $ENV{USER} || '',
-        password        => $args{password} || '',
-        args            => $args{args}     || '',
-        tty             => $args{tty}      || '',
-        timeout         => $args{timeout}  || DEFAULT_TIMEOUT,
-        'socket'        => undef,
-        backend_pid     => '',
-        secret_key      => '',
-        selected_record => undef,
-        error_message   => '',
-        last_oid        => undef,
+        hostname              => $args{hostname},
+        path                  => $args{path}     || DEFAULT_UNIX_SOCKET,
+        port                  => $args{port}     || DEFAULT_PORT_NUMBER,
+        database              => $args{database} || $ENV{USER} || '',
+        user                  => $args{user}     || $ENV{USER} || '',
+        password              => $args{password} || '',
+        args                  => $args{args}     || '',
+        tty                   => $args{tty}      || '',
+        timeout               => $args{timeout}  || DEFAULT_TIMEOUT,
+        'socket'              => undef,
+        backend_pid           => '',
+        secret_key            => '',
+        selected_record       => undef,
+        error_message         => '',
+        last_oid              => undef,
+        server_identification => '',
+        server_version        => '0.0.0',
+        server_version_num    => 0,
     }, $class;
     $DEBUG = 1 if $args{debug};
     $self->_initialize;
@@ -457,6 +464,7 @@ sub _initialize {
     my ($self) = @_;
     $self->_connect;
     $self->_do_startup;
+    $self->_find_server_version;
 }
 
 sub _connect {
@@ -504,6 +512,28 @@ sub _do_startup {
 
     $self->{socket}->send($packet, 0);
     $self->_do_authentication;
+}
+
+sub _find_server_version {
+    my ($self) = @_;
+    eval {
+        # If this function doesn't exist (as was the case in PostgreSQL 7.1
+        # and earlier), we'll end up leaving the version as 0.0.0.  I can
+        # live with that.
+        my $st = $self->prepare(q[SELECT version()]);
+        $st->execute;
+        my $data = $st->fetch;
+        1 while $st->fetch;
+        my $id = $data->[0];
+        $self->{server_identification} = $id;
+        if (my ($ver) = $id =~ /\A PostgreSQL \s+ ([0-9._]+) (?:\s|\z)/x) {
+            $self->{server_version} = $ver;
+            if (my ($maj, $min, $sub)
+                    = $ver =~ /\A ([0-9]+)\.([0-9]{1,2})\.([0-9]{1,2}) \z/x) {
+                $self->{server_version_num} = ($maj * 100 + $min) * 100 + $sub;
+            }
+        }
+    };
 }
 
 sub _dump_packet {
@@ -1366,6 +1396,36 @@ the C<-i> option (TCP/IP socket).
 For authentication with username and password appropriate entries have to be
 made in pg_hba.conf.  Please refer to the PostgreSQL documentation for
 pg_hba.conf and pg_passwd for the various types of authentication.
+
+=back
+
+=head1 OTHER FUNCTIONS
+
+As of DBD::PgPP 0.06, you can use the following functions to determine the
+version of the server to which a database handle is connected.  Note the
+unusual calling convention; it may be changed in the future.
+
+=over 4
+
+=item C<DBD::PgPP::pgpp_server_identification($dbh)>
+
+The server's version identification string, as returned by the standard
+C<version()> function available in PostgreSQL 7.2 and above.  If the server
+doesn't support that function, returns an empty string.
+
+=item C<DBD::PgPP::pgpp_server_version($dbh)>
+
+The server's version string, as parsed out of the return value of the
+standard C<version()> function available in PostgreSQL 7.2 and above.  For
+example, returns the string C<8.3.5> if the server is release 8.3.5.  If the
+server doesn't support C<version()>, returns the string C<0.0.0>.
+
+=item C<DBD::PgPP::pgpp_server_version_num($dbh)>
+
+A number representing the server's version number, as parsed out of the
+return value of the standard C<version()> function available in PostgreSQL
+7.2 and above.  For example, returns 80305 if the server is release 8.3.5.
+If the server doesn't support C<version()>, returns zero.
 
 =back
 

@@ -14,14 +14,14 @@ my %bad_len = map { $_ => 1 } 1487, 2987, 4487;
 push @len, sort keys %bad_len;
 
 if (defined $ENV{DBI_DSN}) {
-    plan tests => 11 + 3 * @len;
+    plan tests => 19 + 3 * @len;
 }
 else {
     plan skip_all => 'Cannot run test unless DBI_DSN is defined. See the README file.';
 }
 
 my $db = DBI->connect($ENV{DBI_DSN}, $ENV{DBI_USER}, $ENV{DBI_PASS},
-                       {RaiseError => 0, PrintError => 0, AutoCommit => 1});
+                       {RaiseError => 1, PrintError => 0, AutoCommit => 1});
 
 ok(defined $db, "Connect to database for testing result fetches");
 
@@ -80,6 +80,41 @@ ok($db->do(q[SELECT ? AS a], undef, '\\'),
     $st->bind_param(1, 'foo', 25); # type with OID 25 is text
     $st->execute;
     is_deeply($st->fetchall_arrayref, [['foo']], 'minimal typed bind_param');
+}
+
+{
+    my $data = eval { $db->selectall_arrayref(q[SELECT ? AS a]) };
+    my $err = $@;
+    ok(!$data, 'Execute with too few params fails');
+    like($err, qr/Wrong number /,
+         'Execute with too few params dies well');
+}
+
+{
+    my $data = eval {
+        $db->selectall_arrayref(q[SELECT ? AS a], undef, 'a', 'b') };
+    my $err = $@;
+    ok(!$data, 'Execute with too many params fails');
+    like($err, qr/Wrong number /,
+         'Execute with too many params dies well');
+}
+
+{
+    my $st = $db->prepare(q[SELECT ? AS a]);
+
+    my $data = eval { $db->selectall_arrayref($st) };
+    my $err = $@;
+    ok(!$data, 'Execute with too few bound params fails');
+    like($err, qr/Wrong number /,
+         'Execute with too few bound params dies well');
+
+    $st->bind_param(1, 'a');
+    $st->bind_param(2, 'b');
+    $data = eval { $db->selectall_arrayref($st) };
+    $err = $@;
+    ok(!$data, 'Execute with too many bound params fails');
+    like($err, qr/Wrong number /,
+         'Execute with too many bound params dies well');
 }
 
 for (@len) {

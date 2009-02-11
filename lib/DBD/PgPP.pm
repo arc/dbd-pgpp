@@ -290,11 +290,15 @@ sub execute {
     my $num_params = $sth->FETCH('NUM_OF_PARAMS');
 
     if (@args) {
+        return $sth->set_err($DBI::stderr, "Wrong number of arguments")
+            if @args != $num_params;
         my $dbh = $sth->{Database};
         $_ = $dbh->quote($_) for @args;
     }
     else {
         my $bind_params = $sth->FETCH('pgpp_params');
+        return $sth->set_err($DBI::stderr, "Wrong number of bound parameters")
+            if @$bind_params != $num_params;
 
         # They've already been quoted by ->bind_param
         @args = @$bind_params;

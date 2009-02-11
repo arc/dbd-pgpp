@@ -582,7 +582,6 @@ sub _do_authentication {
     my $stream = $self->get_stream;
     while (1) {
         my $packet = $stream->each;
-        printf "Receive %s\n", ref($packet) if $DEBUG;
         last if $packet->is_end_of_response;
         Carp::croak($packet->get_message) if $packet->is_error;
         $packet->compute($self);
@@ -671,7 +670,6 @@ sub execute {
 
     my $stream = $pgsql->get_stream;
     my $packet = $stream->each;
-    printf "Receive %s\n", ref($packet) if $DBD::PgPP::Protocol::DEBUG;
     if ($packet->is_error) {
         $self->_to_end_of_response($stream);
         die $packet->get_message;
@@ -697,8 +695,6 @@ sub execute {
         $row_info->compute($self);
         while (1) {
             my $row_packet = $stream->each;
-            printf "-Receive %s\n", ref $row_packet
-                if $DBD::PgPP::Protocol::DEBUG;
             if ($row_packet->is_error) {
                 $self->_to_end_of_response($stream);
                 Carp::croak($row_packet->get_message);
@@ -713,7 +709,6 @@ sub execute {
         $packet->compute($self);
         while (1) {
             my $end = $stream->each;
-            printf "-Receive %s\n", ref($end) if $DBD::PgPP::Protocol::DEBUG;
             if ($end->is_error) {
                 $self->_to_end_of_response($stream);
                 Carp::croak($end->get_message);
@@ -787,22 +782,24 @@ sub each {
     my ($self) = @_;
     my $type = $self->_get_byte;
     # XXX: This would perhaps be better as a dispatch table
-    return $type eq ASCII_ROW             ? $self->_each_ascii_row
-         : $type eq AUTHENTICATION        ? $self->_each_authentication
-         : $type eq BACKEND_KEY_DATA      ? $self->_each_backend_key_data
-         : $type eq BINARY_ROW            ? $self->_each_binary_row
-         : $type eq COMPLETED_RESPONSE    ? $self->_each_completed_response
-         : $type eq COPY_IN_RESPONSE      ? $self->_each_copy_in_response
-         : $type eq COPY_OUT_RESPONSE     ? $self->_each_copy_out_response
-         : $type eq CURSOR_RESPONSE       ? $self->_each_cursor_response
-         : $type eq EMPTY_QUERY_RESPONSE  ? $self->_each_empty_query_response
-         : $type eq ERROR_RESPONSE        ? $self->_each_error_response
-         : $type eq FUNCTION_RESPONSE     ? $self->_each_function_response
-         : $type eq NOTICE_RESPONSE       ? $self->_each_notice_response
-         : $type eq NOTIFICATION_RESPONSE ? $self->_each_notification_response
-         : $type eq READY_FOR_QUERY       ? $self->_each_ready_for_query
-         : $type eq ROW_DESCRIPTION       ? $self->_each_row_description
-         :         Carp::croak("Unknown message type: '$type'");
+    my $p  = $type eq ASCII_ROW             ? $self->_each_ascii_row
+           : $type eq AUTHENTICATION        ? $self->_each_authentication
+           : $type eq BACKEND_KEY_DATA      ? $self->_each_backend_key_data
+           : $type eq BINARY_ROW            ? $self->_each_binary_row
+           : $type eq COMPLETED_RESPONSE    ? $self->_each_completed_response
+           : $type eq COPY_IN_RESPONSE      ? $self->_each_copy_in_response
+           : $type eq COPY_OUT_RESPONSE     ? $self->_each_copy_out_response
+           : $type eq CURSOR_RESPONSE       ? $self->_each_cursor_response
+           : $type eq EMPTY_QUERY_RESPONSE  ? $self->_each_empty_query_response
+           : $type eq ERROR_RESPONSE        ? $self->_each_error_response
+           : $type eq FUNCTION_RESPONSE     ? $self->_each_function_response
+           : $type eq NOTICE_RESPONSE       ? $self->_each_notice_response
+           : $type eq NOTIFICATION_RESPONSE ? $self->_each_notification_response
+           : $type eq READY_FOR_QUERY       ? $self->_each_ready_for_query
+           : $type eq ROW_DESCRIPTION       ? $self->_each_row_description
+           :         Carp::croak("Unknown message type: '$type'");
+    printf "Received %s\n", ref $p if $DEBUG;
+    return $p;
 }
 
 sub _each_authentication {

@@ -4,7 +4,6 @@ use strict;
 use DBI;
 use Carp ();
 use IO::Socket ();
-use vars qw<$VERSION $err $errstr $state $drh>;
 
 =head1 NAME
 
@@ -20,24 +19,23 @@ DBD::PgPP - Pure Perl PostgreSQL driver for the DBI
 
 =cut
 
-$VERSION = '0.05';
-$err = 0;
-$errstr = '';
-$state = undef;
-$drh = undef;
-
+our $VERSION = '0.05';
 my $BUFFER_LEN = 1500;
+my $DEBUG;
 
-sub driver {
-    my ($class, $attr) = @_;
-    return $drh ||= DBI::_new_drh("$class\::dr", {
-        Name        => 'PgPP',
-        Version     => $VERSION,
-        Err         => \$err,
-        Errstr      => \$errstr,
-        State       => \$state,
-        Attribution => 'DBD::PgPP by Hiroyuki OYAMA',
-    }, {});
+{
+    my $drh;
+    sub driver {
+        my ($class, $attr) = @_;
+        return $drh ||= DBI::_new_drh("$class\::dr", {
+            Name        => 'PgPP',
+            Version     => $VERSION,
+            Err         => \(my $err    = 0),
+            Errstr      => \(my $errstr = ''),
+            State       => \(my $state  = undef),
+            Attribution => 'DBD::PgPP by Hiroyuki OYAMA',
+        }, {});
+    }
 }
 
 sub _parse_dsn {
@@ -389,9 +387,6 @@ sub DESTROY { return }
 
 
 package DBD::PgPP::Protocol;
-
-use vars qw<$VERSION $DEBUG>;
-$VERSION = '0.05';
 
 use constant DEFAULT_UNIX_SOCKET => '/tmp';
 use constant DEFAULT_PORT_NUMBER => 5432;

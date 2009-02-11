@@ -150,7 +150,22 @@ sub quote {
         return 'NULL';
     }
     else {
-        # It's best to always put quotes round it, even if it looks like a
+        # In PostgreSQL versions before 8.1, plain old string literals are
+        # assumed to use backslash escaping.  But that's incompatible with
+        # the SQL standard, which admits no special meaning for \ in a
+        # string literal, and requires the single-quote character to be
+        # doubled for inclusion in a literal.  So PostgreSQL 8.1 introduces
+        # a new extension: an "escaped string" syntax E'...'  which is
+        # unambiguously defined to support backslash sequences.  The plan is
+        # apparently that some future version of PostgreSQL will change
+        # plain old literals to use the SQL-standard interpretation.  So the
+        # only way I can quote reliably on both current versions and that
+        # hypothetical future version is to (a) always put backslashes in
+        # front of both single-quote and backslash, and (b) use the E'...'
+        # syntax if we know we're speaking to a version recent enough to
+        # support it.
+        #
+        # Also, it's best to always quote the value, even if it looks like a
         # simple integer.  Otherwise you can't compare the result of quoting
         # Perl numeric zero to a boolean column.  (You can't _reliably_
         # compare a Perl scalar to a boolean column anyway, because there
@@ -159,8 +174,10 @@ sub quote {
         # least if you quote '0' it looks false to Postgres.  Sigh.  I have
         # some plans for a pure-Perl DBD which understands the 7.4 protocol,
         # and can therefore fix up bools in _both_ directions.)
+
+        my $version = $dbh->FETCH('pgpp_connection')->{server_version_num};
         $s =~ s/(?=[\\\'])/\\/g;
-        return "'$s'";
+        return $version >= 80100 ? "E'$s'" : "'$s'";
     }
 }
 
@@ -667,7 +684,7 @@ sub execute {
         return;
     }
     while ($packet->is_notice_response) {
-        # discard it for now
+        # XXX: discard it for now
         $packet = $stream->each;
     }
     if ($packet->is_cursor_response) {

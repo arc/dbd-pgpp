@@ -27,7 +27,7 @@ ok(defined $db, "Connect to database for testing result fetches");
 
 # XXX: This test only works on recent-enough versions of PostgreSQL, which
 # give a warning for string literals that use backslashes
-ok($db->do(q[SELECT ? AS a], undef, '\\'),
+ok($db->do(q[SELECT '\\\\' AS a]),
    'Syntax warning is handled correctly');
 
 {

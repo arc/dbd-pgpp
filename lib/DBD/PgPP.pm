@@ -488,7 +488,7 @@ sub _do_startup {
     my ($self) = @_;
 
     # create message body
-    my $packet = pack 'nna64a32a64a64a64', (
+    my $packet = pack 'n n a64 a32 a64 a64 a64', (
         2,                      # Protocol major version - Int16bit
         0,                      # Protocol minor version - Int16bit
         $self->{database},      # Database name          - LimString64

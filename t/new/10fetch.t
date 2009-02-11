@@ -14,7 +14,7 @@ my %bad_len = map { $_ => 1 } 1487, 2987, 4487;
 push @len, sort keys %bad_len;
 
 if (defined $ENV{DBI_DSN}) {
-    plan tests => 5 + 3 * @len;
+    plan tests => 8 + 3 * @len;
 }
 else {
     plan skip_all => 'Cannot run test unless DBI_DSN is defined. See the README file.';
@@ -54,6 +54,15 @@ ok($db->do(q[SELECT ? AS a], undef, '\\'),
         q[SELECT ? AS a, ? AS b], {Slice => {}}, 'a?', 'b');
     is_deeply($data, [{a => 'a?', b => 'b'}],
               'Arg with "?" returns correct data');
+}
+
+{
+    my $st = $db->prepare(q[SELECT 1 AS a WHERE false]);
+    ok($st->execute, 'Execute prepared statement');
+    is_deeply($st->fetchall_arrayref, [], 'First fetch');
+    # XXX: second fetch is likely to block on a non-forthcoming packet if
+    # there's a bug.
+    is_deeply($st->fetchall_arrayref, [], 'Second fetch');
 }
 
 for (@len) {

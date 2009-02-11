@@ -342,13 +342,17 @@ sub fetch {
     my ($sth) = @_;
 
     my $iterator = $sth->FETCH('pgpp_record_iterator');
-    my $row = $iterator->fetch
-        or return undef;
+    return undef if $iterator->{finished};
 
-    if ($sth->FETCH('ChopBlanks')) {
-        s/\s+\z// for @$row;
+    if (my $row = $iterator->fetch) {
+        if ($sth->FETCH('ChopBlanks')) {
+            s/\s+\z// for @$row;
+        }
+        return $sth->_set_fbav($row);
     }
-    return $sth->_set_fbav($row);
+
+    $iterator->{finished} = 1;
+    return undef;
 }
 *fetchrow_arrayref = \&fetch;
 
@@ -601,7 +605,6 @@ sub new {
         postgres  => $pgsql,
         statement => $statement,
         stream    => undef,
-        finish    => undef,
     }, $class;
 }
 
@@ -614,7 +617,6 @@ sub execute {
     my $query_packet = "Q$self->{statement}\0";
     DBD::PgPP::Protocol::_dump_packet($query_packet);
     $handle->send($query_packet, 0);
-    $self->{finisy}        = undef;
     $self->{affected_rows} = 0;
     $self->{last_oid}      = undef;
 
@@ -626,11 +628,9 @@ sub execute {
         die $packet->get_message;
     }
     elsif ($packet->is_end_of_response) {
-        $self->{finish} = 1;
         return;
     }
     elsif ($packet->is_empty) {
-        $self->{finish} = 1;
         $self->_to_end_of_response($stream);
         return;
     }
@@ -665,7 +665,6 @@ sub execute {
     }
     else {                      # CompletedResponse
         $packet->compute($self);
-        $self->{finish} = 1;
         while (1) {
             my $end = $stream->each;
             printf "-Receive %s\n", ref($end) if $DBD::PgPP::Protocol::DEBUG;
@@ -691,8 +690,6 @@ sub _to_end_of_response {
 
 sub fetch {
     my ($self) = @_;
-
-    return undef if $self->{finish};
 
     my $pgsql = $self->{postgres};
     my $stream = $self->{stream};

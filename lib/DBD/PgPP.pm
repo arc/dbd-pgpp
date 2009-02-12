@@ -1520,8 +1520,22 @@ Hiroyuki OYAMA E<lt>oyama@module.jpE<gt>
 =head1 COPYRIGHT AND LICENCE
 
 Copyright (C) 2004 Hiroyuki OYAMA.  All rights reserved.
+Copyright (C) 2004, 2005, 2009 Aaron Crane.  All rights reserved.
 
-This library is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
+DBD::PgPP is free software; you can redistribute it and/or modify it under
+the terms of Perl itself, that is to say, under the terms of either:
+
+=over 4
+
+=item *
+
+The GNU General Public License as published by the Free Software Foundation;
+either version 2, or (at your option) any later version, or
+
+=item *
+
+The "Artistic License" which comes with Perl.
+
+=back
 
 =cut

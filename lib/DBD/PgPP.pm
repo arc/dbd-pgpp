@@ -150,6 +150,9 @@ sub quote {
         return 'NULL';
     }
     else {
+        die 'Cannot quote values containing \0 bytes'
+            if $s =~ /\0/;
+
         # In PostgreSQL versions before 8.1, plain old string literals are
         # assumed to use backslash escaping.  But that's incompatible with
         # the SQL standard, which admits no special meaning for \ in a
@@ -183,6 +186,9 @@ sub quote {
 
 sub prepare {
     my ($dbh, $statement, @attribs) = @_;
+
+    die 'PostgreSQL cannot accept queries containing \0 bytes'
+        if $statement =~ /\0/;
 
     my $pgsql = $dbh->FETCH('pgpp_connection');
     my $parsed = $pgsql->parse_statement($statement);

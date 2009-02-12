@@ -14,7 +14,7 @@ my %bad_len = map { $_ => 1 } 1487, 2987, 4487;
 push @len, sort keys %bad_len;
 
 if (defined $ENV{DBI_DSN}) {
-    plan tests => 19 + 3 * @len;
+    plan tests => 23 + 3 * @len;
 }
 else {
     plan skip_all => 'Cannot run test unless DBI_DSN is defined. See the README file.';
@@ -115,6 +115,20 @@ ok($db->do(q[SELECT '\\\\' AS a]),
     ok(!$data, 'Execute with too many bound params fails');
     like($err, qr/Wrong number /,
          'Execute with too many bound params dies well');
+}
+
+{
+    my $st = eval { $db->prepare(qq[SELECT ? AS a\0]) };
+    my $err = $@;
+    ok(!$st, 'Preparing a query containing \0 fails');
+    like($err, qr/\\0 byte/, 'Preparing a query containing \0 dies well');
+}
+
+{
+    my $data = eval { $db->selectall_arrayref(q[SELECT ? AS a], undef, "\0") };
+    my $err = $@;
+    ok(!$data, 'Quoting \0 fails');
+    like($err, qr/\\0 byte/, 'Quote \0 fails well');
 }
 
 for (@len) {

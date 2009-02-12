@@ -63,6 +63,7 @@ eval { $sth->execute };
 ok($@, 'Execute fails on a disconnected statement');
 
 END {
+    no warnings qw<uninitialized>;
     diag "\n".
      "Program       Version\n".
      "DBD::PgPP     $DBD::PgPP::VERSION\n".

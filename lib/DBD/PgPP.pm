@@ -1443,25 +1443,56 @@ If the server doesn't support C<version()>, returns zero.
 
 =back
 
-=head1 LIMITATIONS
+=head1 BUGS, LIMITATIONS, AND TODO
 
 =over 4
 
 =item *
 
-Can't use 'crypt' authentication in a part of FreeBSD.
+No support for Kerberos or SCM Credential authentication; and there's no
+support for crypt authentication on some platforms.
 
 =item *
 
-Can't use the 'Kerberos v4/5' authentication.
+Can't use SSL for encrypted connections.
 
 =item *
 
-Can't use the SSL Connection.
+Using multiple semicolon-separated queries in a single statement will cause
+DBD::PgPP to fail in a way that requires you to reconnect to the server.
 
 =item *
 
-Can't use BLOB data.
+No support for COPY, or LISTEN notifications, or for cancelling in-progress
+queries.  (There's also no support for the "explicit function call" part of
+the protocol, but there's nothing you can do that way that isn't more easily
+achieved by writing SQL to call the function.)
+
+=item *
+
+There's currently no way to get informed about any warnings PostgreSQL may
+issue for your queries.
+
+=item *
+
+No support for BLOB data types or long objects.
+
+=item *
+
+Currently assumes that the Perl code and the database use the same encoding
+for text; probably also assumes that the encoding uses eight bits per
+character.  Future versions are expected to support UTF-8-encoded Unicode
+(in a way that's compatible with Perl's own string encodings).
+
+=item *
+
+You can't use any data type that (like bytea) requires C<< $dbh->quote >> to
+use any syntax other than standard string literals.  Using booleans and
+numbers works to the extent that PostgreSQL supports string-ish syntax for
+them, but that varies from one version to another.  The only reliable way to
+solve this and still support PostgreSQL 7.3 and below is to use the DBI
+C<bind_param> mechanism and say which type you want; but typed bind_param
+ignores the type at the moment.
 
 =back
 
@@ -1470,16 +1501,6 @@ Can't use BLOB data.
 This module requires these other modules and libraries:
 
 L<DBI>, L<IO::Socket>
-
-=head1 TODO
-
-=over 4
-
-=item *
-
-Add the original crypt (pure perl) method.
-
-=back
 
 =head1 SEE ALSO
 

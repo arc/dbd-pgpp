@@ -1455,6 +1455,14 @@ If the server doesn't support C<version()>, returns zero.
 
 =item *
 
+The C<debug> DSN parameter is incorrectly global: if you enable it for one
+database handle, it gets enabled for all database handles in the current
+Perl interpreter.  It should probably be removed entirely in favour of DBI's
+built-in and powerful tracing mechanism, but that's too hard to do in the
+current architecture.
+
+=item *
+
 No support for Kerberos or SCM Credential authentication; and there's no
 support for crypt authentication on some platforms.
 

@@ -3,6 +3,7 @@ Makefile.PL
 MANIFEST
 lib/DBD/PgPP.pm
 README
+DEVEL_NOTES
 t/old/00.load.t
 t/old/05.connect.t
 t/old/06.setup.t

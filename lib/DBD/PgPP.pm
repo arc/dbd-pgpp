@@ -472,6 +472,7 @@ sub close {
     return if !fileno $socket;
 
     my $terminate_packet = 'X' . pack 'N', 5;
+    print " ==> Terminate\n" if $DEBUG;
     _dump_packet($terminate_packet);
     $socket->send($terminate_packet, 0);
     $socket->close;
@@ -531,8 +532,9 @@ sub _do_startup {
 
     # add packet length
     $packet = pack('N', length($packet) + 4). $packet;
-    _dump_packet($packet);
 
+    print " ==> StartupPacket\n" if $DEBUG;
+    _dump_packet($packet);
     $self->{socket}->send($packet, 0);
     $self->_do_authentication;
 }
@@ -668,6 +670,7 @@ sub execute {
     my $handle = $pgsql->get_handle;
 
     my $query_packet = "Q$self->{statement}\0";
+    print " ==> Query\n" if $DEBUG;
     DBD::PgPP::Protocol::_dump_packet($query_packet);
     $handle->send($query_packet, 0);
     $self->{affected_rows} = 0;
@@ -804,7 +807,10 @@ sub each {
            : $type eq READY_FOR_QUERY       ? $self->_each_ready_for_query
            : $type eq ROW_DESCRIPTION       ? $self->_each_row_description
            :         Carp::croak("Unknown message type: '$type'");
-    printf "Received %s\n", ref $p if $DEBUG;
+    if ($DEBUG) {
+        (my $type = ref $p) =~ s/.*:://;
+        print "<==  $type\n";
+    }
     return $p;
 }
 
@@ -1001,6 +1007,7 @@ sub compute {
     my $password = $pgsql->{password};
 
     my $packet = pack('N', length($password) + 4 + 1). $password. "\0";
+    print " ==> PasswordPacket (cleartext)\n" if $DEBUG;
     DBD::PgPP::Protocol::_dump_packet($packet);
     $handle->send($packet, 0);
 }
@@ -1025,6 +1032,7 @@ sub compute {
 
     $password = _encode_crypt($password, $self->{salt});
     my $packet = pack('N', length($password) + 4 + 1). $password. "\0";
+    print " ==> PasswordPacket (crypt)\n" if $DEBUG;
     DBD::PgPP::Protocol::_dump_packet($packet);
     $handle->send($packet, 0);
 }
@@ -1065,6 +1073,7 @@ sub compute {
 
     my $md5ed_password = _encode_md5($pgsql->{user}, $password, $self->{salt});
     my $packet = pack('N', 1 + 4 + length $md5ed_password). "$md5ed_password\0";
+    print " ==> PasswordPacket (md5)\n" if $DEBUG;
     DBD::PgPP::Protocol::_dump_packet($packet);
     $handle->send($packet, 0);
 }

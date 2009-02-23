@@ -1,107 +1,112 @@
 DBD::PgPP
 =========
 
-DBD::PgPP - Pure Perl PostgreSQL driver for the DBI.
+DBD::PgPP - Pure-Perl DBI driver for the PostgreSQL database
 
-DBD::PgPP is a Pure Perl client interface for the PostgreSQL database.  This
-module implements the PostgreSQL client/server network protocol, so you
-don't need an external PostgreSQL client library like "libpq" for it to
-work. That means you can connect to a PostgreSQL server from operating
-systems to which PostgreSQL has not been ported. How nifty!
+DBD::PgPP is a pure-Perl client interface for the PostgreSQL database.  This
+module implements the network protocol that allows a client to communicate
+with a PostgreSQL server, so you don't need an external PostgreSQL client
+library like libpq for it to work.  That means this module enables you to
+connect to PostgreSQL server from platforms where there's no PostgreSQL
+port, or where installing PostgreSQL is prohibitively hard.
 
 
-DEPENDENCIES:
--------------
+DEPENDENCIES
+------------
 
-This module requires these other modules and libraries:
+This module uses the following other modules and libraries:
 
   DBI
   IO::Socket
+  Digest::MD5 (recommended for performance, but not required)
 
 
-OPERATING SYSTEMS SUPPORTED BY 'DBD::PgPP':
--------------------------------------------
+INSTALLATION
+------------
 
-This module has been tested on these OSes.
-
-  * Mac OS 9 with MacPerl5.6.1r1 built for PowerPC
-  * Mac OS X with perl 5.6.0 buildt for darwin
-  * Windows2000 with ActivePerl5.6.1 buildt631
-  * FreeBSD4.6 with perl5.6.1 built for i386-freebsd
-  * FreeBSD3.4 with perl5.005_03 & perl5.6.1 built for i386-freebsd
-  * Linux with perl5.005_03 built for ppc-linux
-  * Linux with perl5.6.1 on i386
-  * Solaris 2.6 with perl 5.6.1 built for sun4-solaris
-  * Solaris 2.6 with perl 5.004_04 built for sun4-solaris
-
-# This list is the environment which I can use by the test usually.
-# DBD::PgPP will operate also in much environment which is not
-# in a list.
-
-Can use on Solaris2.6 with perl5.004_04, although 'make test' is
-failure.
-
-
-
-INSTALLATION:
--------------
-
-To install this module type the following:
+To install this module, run the following:
 
    perl Makefile.PL
    make
    make test
    make install
 
-Note:
-   A part of tests are skipped in the system which used a
-   DES-base crypt(). if this is the other authentication methods,
-   (like 'trust', 'password', 'md5') it will operate correctly.
 
-   When using 'md5' authentication, if there is no 'Digest::MD5'
-   module, MD5 will be calculated inside. However, it recommends
-   that it installs 'Digest::MD5' module since this is a low speed.
+TESTING
+-------
+
+The test suite requires access to a suitable PostgreSQL server; without
+that, only an extremely limited form of testing is possible.
+
+To tell the test suite how to find a PostgreSQL server, set the following
+environment variables:
+
+  DBI_DSN (required)
+    A DBI "data source name" indicating the location of the database.  For
+    example, to connect to the database named "abc" over a Unix-domain
+    socket stored in /var/run/postgresql, use this DSN:
+
+      export DBI_DSN='dbi:PgPP:dbname=abc;path=/var/run/postgresql'
+
+    Or to connect to a database of the same name, using a TCP connection to
+    pg.example.com, use this:
+
+      export DBI_DSN='dbi:PgPP:dbname=abc;host=pg.example.com'
+
+    See the DBD::PgPP documentation for full details on what can go into a
+    DBD::PgPP DSN.
+
+  DBI_USER (optional)
+    The username to connect as; defaults to the database name
+
+  DBI_PASS (optional)
+    The password needed to allow the given user to authenticate to the
+    server.  Some configurations of PostgreSQL allow connection without a
+    password; you don't need to set a DBI_PASS in such cases.
+
+Note that DBD::PgPP 0.05 and earlier versions used a different set of
+environment variables for telling the test suite how to contact the
+database.  The new variables are more flexible, more consistent with how
+Perl code connects to a database, and more consistent with how other DBDs
+(including DBD::Pg) accomplish the same task.
 
 
-TESTING:
---------
+REPORTING BUGS
+--------------
 
-The tests are designed to connect to a live database. The following
-environment variables must be set for the tests to run:
+If you find what seems to be a bug in DBD::PgPP, please use RT to report it
+to the maintainers:
 
-PG_TEST_DB=<database>
-PG_TEST_USER=<user>
-PG_TEST_PASS=<password>
-PG_TEST_HOST=<hostname>*
+  http://rt.cpan.org/NoAuth/Bugs.html?Dist=DBD-PgPP
 
-PG_TEST_HOST is optional. When this is not specified, it connects
-with UNIX socket of '/tmp/.s.PGSQL.5432'.
+Please supply any information that could help with reproducing the bug.
+For example, if the bug only appears when DBD::PgPP is used with certain
+database schemas, a description (or even a dump) of the schema in question
+would be useful.
 
 
-LIMITATION:
+MAINTENANCE
 -----------
 
-  * Can't use 'crypt' authentication in a DES-based crypt().
-  * Can't use the 'Kerberos v4/5' authentication.
-  * Can't use the SSL Connection.
-  * Can't use BLOB data.
+The current maintainer of DBD::PgPP no longer has cause to use it, and would
+welcome the assistance of anyone who does -- or even a volunteer to take
+over maintenance completely.
+
+Even if you aren't in a position to do that, please report any bugs you
+find; and if you want a new feature, please send tests for it (with or
+without a sample implementation).
 
 
-BUG REPORT:
------------
+COPYRIGHT AND LICENCE
+---------------------
 
-Wne a problem is found, append the following elements and give
-mail to <oyama@module.jp>.
+Copyright (C) 2004 Hiroyuki OYAMA.  All rights reserved.
+Copyright (C) 2004, 2005, 2009 Aaron Crane.  All rights reserved.
 
-  * The version and platform of Perl which are used.
-  * The version and platform of PostgreSQL server.
-  * All the error messages generated with the problem.
-  * The sample code which can reproduce the problem.
+DBD::PgPP is free software; you can redistribute it and/or modify it under
+the terms of Perl itself, that is to say, under the terms of either:
 
+* The GNU General Public License as published by the Free Software Foundation;
+  either version 2, or (at your option) any later version, or
 
-COPYRIGHT AND LICENCE:
-----------------------
-Copyright (C) 2004 Hiroyuki OYAMA. Japan. All rights reserved.
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
+* The "Artistic License" which comes with Perl.

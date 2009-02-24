@@ -311,16 +311,19 @@ sub last_insert_id {
     $table = ''  if !defined $table;
 
     # Cache all of our table lookups? Default is yes
-    my $cachename = "$schema.$table";
     my $use_cache = exists $attr->{pgpp_cache} ? $attr->{pgpp_cache} : 1;
+
+    # Cache key.  Note we must distinguish ("a.b", "c") from ("a", "b.c")
+    # (and XXX: we ought really to have tests for that)
+    my $cache_key = join '.', map { quotemeta } $schema, $table;
 
     my $sequence;
     if (defined $attr->{sequence}) {
         # Named sequence overrides any table or schema settings
         $sequence = $attr->{sequence};
     }
-    elsif ($use_cache && exists $db->{pgpp_liicache}{$cachename}) {
-        $sequence = $db->{pgpp_liicache}{$cachename};
+    elsif ($use_cache && exists $db->{pgpp_liicache}{$cache_key}) {
+        $sequence = $db->{pgpp_liicache}{$cache_key};
     }
     else {
         # At this point, we must have a valid table name
@@ -404,7 +407,7 @@ sub last_insert_id {
         $sequence = $def[0][3];
 
         # Cache this information for subsequent calls
-        $db->{pgpp_liicache}{$cachename} = $sequence;
+        $db->{pgpp_liicache}{$cache_key} = $sequence;
     }
 
     my $st = $db->prepare("SELECT currval(?)");

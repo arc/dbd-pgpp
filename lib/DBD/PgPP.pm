@@ -290,11 +290,132 @@ sub STORE {
     return $dbh->SUPER::STORE($key, $new);
 }
 
+sub last_insert_id {
+    my ($db, $catalog, $schema, $table, $col, $attr) = @_;
+
+    my $pgsql = $db->FETCH('pgpp_connection');
+
+    if (!defined $attr) {
+        $attr = {};
+    }
+    elsif (!ref $attr && $attr ne '') {
+        # If not a hash, assume it is a sequence name
+        $attr = { sequence => $attr };
+    }
+    elsif (ref $attr ne 'HASH') {
+        return $db->set_err(1, "last_insert_id attrs must be a hashref");
+    }
+
+    # Catalog and col are not used
+    $schema = '' if !defined $schema;
+    $table = ''  if !defined $table;
+
+    # Cache all of our table lookups? Default is yes
+    my $cachename = "$schema.$table";
+    my $use_cache = exists $attr->{pg_cache} ? $attr->{pg_cache} : 1;
+
+    my $sequence;
+    if (defined $attr->{sequence}) {
+        # Named sequence overrides any table or schema settings
+        $sequence = $attr->{sequence};
+    }
+    elsif ($use_cache && exists $db->{pgpp_liicache}{$cachename}) {
+        $sequence = $db->{pgpp_liicache}{$cachename};
+    }
+    else {
+        # At this point, we must have a valid table name
+        return $db->set_err(1, "last_insert_id needs a sequence or table name")
+            if $table eq '';
+
+        my @args = $table;
+
+        # Only 7.3 and up can use schemas
+        my $pg_catalog;
+        if ($pgsql->{server_version_num} < 70300) {
+            $schema = '';
+            $pg_catalog = '';
+        }
+        else {
+            $pg_catalog = 'pg_catalog.';
+        }
+
+        # Make sure the table in question exists and grab its oid
+        my ($schemajoin, $schemawhere) = ('','');
+        if (length $schema) {
+            $schemajoin =
+                ' JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace';
+            $schemawhere = ' AND n.nspname = ?';
+            push @args, $schema;
+        }
+
+        my $st = $db->prepare(qq[
+            SELECT c.oid FROM ${pg_catalog}pg_class c $schemajoin
+            WHERE relname = ? $schemawhere
+        ]);
+        my $count = $st->execute(@args);
+        if (!defined $count) {
+            $st->finish;
+            my $message = qq{Could not find the table "$table"};
+            $message .= qq{ in the schema "$schema"} if $schema ne '';
+            return $db->set_err(1, $message);
+        }
+        my $oid = $st->fetchall_arrayref->[0][0];
+        # This table has a primary key. Is there a sequence associated with
+        # it via a unique, indexed column?
+        $st = $db->prepare(qq[
+            SELECT a.attname, i.indisprimary, substring(d.adsrc for 128) AS def
+            FROM ${pg_catalog}pg_index i
+            JOIN ${pg_catalog}pg_attribute a ON a.attrelid = i.indrelid
+                                            AND a.attnum   = i.indkey[0]
+            JOIN ${pg_catalog}pg_attrdef d   ON d.adrelid = a.attrelid
+                                            AND d.adnum   = a.attnum
+            WHERE i.indrelid = $oid
+              AND a.attrelid = $oid
+              AND i.indisunique IS TRUE
+              AND a.atthasdef IS TRUE
+              AND d.adsrc ~ '^nextval'
+        ]);
+        $count = $st->execute;
+        if (!defined $count) {
+            $st->finish;
+            return $db->set_err(1, qq{No suitable column found for last_insert_id of table "$table"});
+        }
+        my $info = $st->fetchall_arrayref;
+
+        # We have at least one with a default value. See if we can determine
+        # sequences
+        my @def;
+        for (@$info) {
+            my ($seq) = $_->[2] =~ /^nextval\('([^']+)'::/ or next;
+            push @def, [@$_, $seq];
+        }
+
+        return $db->set_err(1, qq{No suitable column found for last_insert_id of table "$table"\n})
+            if !@def;
+
+        # Tiebreaker goes to the primary keys
+        if (@def > 1) {
+            my @pri = grep { $_->[1] } @def;
+            return $db->set_err(1, qq{No suitable column found for last_insert_id of table "$table"\n})
+                if @pri != 1;
+            @def = @pri;
+        }
+
+        $sequence = $def[0][3];
+
+        # Cache this information for subsequent calls
+        $db->{pgpp_liicache}{$cachename} = $sequence;
+    }
+
+    my $st = $db->prepare("SELECT currval(?)");
+    $st->execute($sequence);
+    return $st->fetchall_arrayref->[0][0];
+}
+
 sub DESTROY {
     my ($dbh) = @_;
     $dbh->disconnect;
 }
-
 
 package DBD::PgPP::st;
 

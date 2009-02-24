@@ -20,3 +20,4 @@ t/new/10fetch.t
 t/new/11nested.t
 t/new/13statement_parse.t
 script/pgsql.pl
+t/new/12.lastinsertid.t

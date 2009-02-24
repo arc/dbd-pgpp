@@ -312,7 +312,7 @@ sub last_insert_id {
 
     # Cache all of our table lookups? Default is yes
     my $cachename = "$schema.$table";
-    my $use_cache = exists $attr->{pg_cache} ? $attr->{pg_cache} : 1;
+    my $use_cache = exists $attr->{pgpp_cache} ? $attr->{pgpp_cache} : 1;
 
     my $sequence;
     if (defined $attr->{sequence}) {

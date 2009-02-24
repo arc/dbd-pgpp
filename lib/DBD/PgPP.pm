@@ -291,7 +291,9 @@ sub STORE {
 }
 
 sub last_insert_id {
-    my ($db, $catalog, $schema, $table, $col, $attr) = @_;
+    my ($db, undef, $schema, $table, undef, $attr) = @_;
+    # DBI uses (catalog,schema,table,column), but we don't make use of
+    # catalog or column, so don't bother storing them.
 
     my $pgsql = $db->FETCH('pgpp_connection');
 

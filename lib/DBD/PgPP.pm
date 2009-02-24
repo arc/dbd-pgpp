@@ -1549,6 +1549,75 @@ pg_hba.conf and pg_passwd for the various types of authentication.
 
 =back
 
+=head1 DATABASE-HANDLE METHODS
+
+=over 4
+
+=item C<last_insert_id>
+
+    $rv = $dbh->last_insert_id($catalog, $schema, $table, $field);
+    $rv = $dbh->last_insert_id($catalog, $schema, $table, $field, \%attr);
+
+Attempts to return the id of the last value to be inserted into a table.
+Since PostgreSQL uses the C<sequence> type to implement such things, this
+method finds a sequence's value using the C<CURRVAL()> PostgreSQL function.
+This will fail if the sequence has not yet been used in the current database
+connection.
+
+DBD::PgPP ignores the $catalog and $field arguments are ignored in all
+cases, but they're required by DBI itself.
+
+If you don't know the name of the applicable sequence for the table, you can
+simply provide a table name (optionally qualified by a schema name), and
+DBD::PgPP will attempt to work out which sequence will contain the correct
+value:
+
+    $dbh->do(q{CREATE TABLE t (id serial primary key, s text not null)});
+    my $sth = $dbh->prepare('INSERT INTO t (s) VALUES (?)');
+    for my $value (@values) {
+        $sth->execute($value);
+        my $id = $dbh->last_insert_id(undef, undef, 't', undef);
+        print "Inserted $id: $value\n";
+    }
+
+In most situations, that is the simplest approach.  However, it requires the
+table to have at least one column which is non-null and unique, and uses a
+sequence as its default value.  (If there is more than one such column, the
+primary key is used.)
+
+If those requirements aren't met in your situation, you can alternatively
+specify the sequence name directly:
+
+    $dbh->do(q{CREATE SEQUENCE t_id_seq START 1});
+    $dbh->do(q{CREATE TABLE t (
+      id int not null unique DEFAULT nextval('t_id_seq'),
+      s text not null)});
+    my $sth = $dbh->prepare('INSERT INTO t (s) VALUES (?)');
+    for my $value (@values) {
+        $sth->execute($value);
+        my $id = $dbh->last_insert_id(undef, undef, undef, undef, {
+            sequence => 't_id_seq',
+        });
+        print "Inserted $id: $value\n";
+    }
+
+If you adopt the simpler approach, note that DBD::PgPP will have to issue
+some queries to look things up in the system tables.  DBD::PgPP will then
+cache the appropriate sequence name for subsequent calls.  Should you need
+to disable this caching for some reason, you can supply a true value for the
+attribute C<pgpp_cache>:
+
+    my $id = $dbh->last_insert_id(undef, undef, $table, undef, {
+        pgpp_cache => 0,
+    });
+
+Please keep in mind that C<last_insert_id> is far from foolproof, so make
+your program uses it carefully. Specifically, C<last_insert_id> should be
+used only immediately after an insert to the table in question, and that
+insert must not specify a value for the applicable column.
+
+=back
+
 =head1 OTHER FUNCTIONS
 
 As of DBD::PgPP 0.06, you can use the following functions to determine the

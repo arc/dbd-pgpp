@@ -96,6 +96,13 @@ Even if you aren't in a position to do that, please report any bugs you
 find; and if you want a new feature, please send tests for it (with or
 without a sample implementation).
 
+The code is hosted on GitHub, which should hopefully make it easy for others
+to contribute.  The clone URL is:
+
+  git://github.com/arc/dbd-pgpp.git
+
+Feel free to fork and send me a pull request.
+
 
 COPYRIGHT AND LICENCE
 ---------------------

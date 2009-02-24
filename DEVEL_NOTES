@@ -1,6 +1,16 @@
 Notes for anyone hoping to do DBD::PgPP development or maintenance work
 =======================================================================
 
+Source repository
+-----------------
+
+The code is hosted on GitHub, which should hopefully make it easy for others
+to contribute.  The clone URL is:
+
+  git://github.com/arc/dbd-pgpp.git
+
+Feel free to fork and send me a pull request.
+
 DBI driver prefix registration
 ------------------------------
 

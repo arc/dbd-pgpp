@@ -19,7 +19,7 @@ DBD::PgPP - Pure Perl PostgreSQL driver for the DBI
 
 =cut
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 my $BUFFER_LEN = 1500;
 my $DEBUG;
 

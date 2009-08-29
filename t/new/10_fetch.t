@@ -14,7 +14,7 @@ my %bad_len = map { $_ => 1 } 1487, 2987, 4487;
 push @len, sort keys %bad_len;
 
 if (defined $ENV{DBI_DSN}) {
-    plan tests => 23 + 3 * @len;
+    plan tests => 22 + 3 * @len;
 }
 else {
     plan skip_all => 'Cannot run test unless DBI_DSN is defined. See the README file.';
@@ -125,10 +125,8 @@ ok($db->do(q[SELECT '\\\\' AS a]),
 }
 
 {
-    my $data = eval { $db->selectall_arrayref(q[SELECT ? AS a], undef, "\0") };
-    my $err = $@;
-    ok(!$data, 'Quoting \0 fails');
-    like($err, qr/\\0 byte/, 'Quote \0 fails well');
+    my $data = $db->selectall_arrayref(q[SELECT ? AS a], undef, "a\0b");
+    is_deeply($data, [['a']], 'Quoting \0 works as well as possible');
 }
 
 for (@len) {

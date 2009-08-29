@@ -138,21 +138,16 @@ $DBD::PgPP::db::imp_data_size = 0;
 # We need to implement ->quote, because otherwise we get the default DBI
 # one, which ignores backslashes.  The DBD::Pg implementation doubles all
 # backslashes and apostrophes; this version backslash-protects all of them.
-# XXX: What about null characters, or byte sequences that don't form valid
-# characters in the relevant encoding?
-# XXX: What about the mysterious additional '$data_type' argument?
+# XXX: What about byte sequences that don't form valid characters in the
+# relevant encoding?
+# XXX: What about type-specific quoting?
 sub quote {
     my ($dbh, $s) = @_;
 
     if (!defined $s) {
-        # Yes, _every_ DBD that needs its own quote method has to check for
-        # nulls separately.
         return 'NULL';
     }
     else {
-        die 'Cannot quote values containing \0 bytes'
-            if $s =~ /\0/;
-
         # In PostgreSQL versions before 8.1, plain old string literals are
         # assumed to use backslash escaping.  But that's incompatible with
         # the SQL standard, which admits no special meaning for \ in a
@@ -180,6 +175,7 @@ sub quote {
 
         my $version = $dbh->FETCH('pgpp_connection')->{server_version_num};
         $s =~ s/(?=[\\\'])/\\/g;
+        $s =~ s/\0/\\0/g;
         return $version >= 80100 ? "E'$s'" : "'$s'";
     }
 }
@@ -187,7 +183,7 @@ sub quote {
 sub prepare {
     my ($dbh, $statement, @attribs) = @_;
 
-    die 'PostgreSQL cannot accept queries containing \0 bytes'
+    die 'PostgreSQL does not accept queries containing \0 bytes'
         if $statement =~ /\0/;
 
     my $pgsql = $dbh->FETCH('pgpp_connection');

@@ -1,5 +1,10 @@
 Revision history for Perl extension DBD::PgPP.
 
+0.07  Sat Aug 29 13:17:21 UTC 2009
+
+    - RT#48919: Allow quoting strings containing \0 (not that doing so is
+      very useful, but there's not much I can do about that).
+
 0.06  Tue Feb 24 11:45:16 UTC 2009
 
     - RT#15894: New last_insert_id feature; thanks to Roger Crew for the

@@ -4,6 +4,7 @@ use strict;
 use DBI;
 use Carp ();
 use IO::Socket ();
+use Digest::MD5 ();
 
 =head1 NAME
 
@@ -1203,7 +1204,7 @@ sub compute {
 sub _encode_md5 {
     my ($user, $password, $salt) = @_;
 
-    my $md5 = DBD::PgPP::EncodeMD5->create;
+    my $md5 = Digest::MD5->new;
     $md5->add($password);
     $md5->add($user);
 
@@ -1403,90 +1404,6 @@ package DBD::PgPP::EmptyQueryResponse;
 use base qw<DBD::PgPP::Response>;
 
 sub is_empty { 1 }
-
-
-package DBD::PgPP::EncodeMD5;
-
-=pod
-
-=begin wish
-
-Please do not question closely about this source code ;-)
-
-=end wish
-
-=cut
-
-use vars qw<$a $b $c $d>;
-
-{
-    my ($x, $n, $m, $l, $r, $z);
-
-    sub create {
-        my ($class) = @_;
-        $class = 'Digest::MD5' if eval { require Digest::MD5; 1 };
-        return $class->new;
-    }
-
-    sub new {
-        my ($class) = @_;
-        bless { source => '' }, $class;
-    }
-
-    sub add {
-        my ($self, @data) = @_;
-        $self->{source} .= join '', @data;
-    }
-
-    sub hexdigest {
-        my ($self) = @_;
-
-        my @A = unpack 'N4C24',
-            unpack 'u', 'H9T4C`>_-JXF8NMS^$#)4=@<,$18%"0X4!`L0%P8*#Q4``04``04#!P``';
-        my @K = map { int abs 2 ** 32 * sin $_ } 1 .. 64;
-        my $p;
-        my $position = 0;
-        do {
-            $_ = substr $self->{source}, $position, 64;
-            $position += 64;
-            $l += $r = length $_;
-            $r++, $_ .= "\x80" if $r < 64 && !$p++;
-            my @W = unpack 'V16', $_. "\0" x 7;
-            $W[14] = $l * 8 if $r < 57;
-            ($a, $b, $c, $d) = @A;
-
-            for (0 .. 63) {
-                no warnings;
-                $a = _m($b + _l(
-                    $A[4 + 4 * ($_ >> 4) + $_ % 4],
-                    _m(&{(
-                        sub { $b & $c | $d & ~ $b },
-                        sub { $b & $d | $c & ~ $d },
-                        sub { $b ^ $c ^ $d },
-                        sub { $c ^ ($b | ~ $d) }
-                    )[$z = $_ / 16]}
-                           + $W[($A[20 + $z] + $A[24 + $z] * ($_ % 16)) % 16] + $K[$_] + $a)
-                ));
-                ($a, $b, $c, $d) = ($d, $a, $b, $c)
-            }
-
-            my $i = $A[0];
-            $A[0] = _m($A[0] + $a);
-            $A[1] = _m($A[1] + $b);
-            $A[2] = _m($A[2] + $c);
-            $A[3] = _m($A[3] + $d);
-
-        } while $r > 56;
-
-        ($x, $n, $m, $l, $r, $z) = ();
-        $self->{source} = '';
-
-        return unpack 'H32', pack 'V4', @A;
-    }
-
-    sub _l { ($x = pop @_) << ($n = pop) | 2 ** $n - 1 & $x >> 32 - $n }
-    sub _m { ($x = pop @_) - ($m = 1 + ~ 0) * int($x / $m) }
-}
 
 
 1;
@@ -1714,7 +1631,7 @@ ignores the type at the moment.
 
 This module requires these other modules and libraries:
 
-L<DBI>, L<IO::Socket>
+L<DBI>, L<Digest::MD5>
 
 =head1 SEE ALSO
 
@@ -1728,7 +1645,7 @@ Hiroyuki OYAMA E<lt>oyama@module.jpE<gt>
 =head1 COPYRIGHT AND LICENCE
 
 Copyright (C) 2004 Hiroyuki OYAMA.  All rights reserved.
-Copyright (C) 2004, 2005, 2009 Aaron Crane.  All rights reserved.
+Copyright (C) 2004, 2005, 2009, 2010 Aaron Crane.  All rights reserved.
 
 DBD::PgPP is free software; you can redistribute it and/or modify it under
 the terms of Perl itself, that is to say, under the terms of either:

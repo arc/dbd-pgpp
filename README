@@ -17,8 +17,8 @@ DEPENDENCIES
 This module uses the following other modules and libraries:
 
   DBI
-  IO::Socket
-  Digest::MD5 (recommended for performance, but not required)
+  IO::Socket (ships with supported Perl versions)
+  Digest::MD5
 
 
 INSTALLATION
@@ -108,7 +108,7 @@ COPYRIGHT AND LICENCE
 ---------------------
 
 Copyright (C) 2004 Hiroyuki OYAMA.  All rights reserved.
-Copyright (C) 2004, 2005, 2009 Aaron Crane.  All rights reserved.
+Copyright (C) 2004, 2005, 2009, 2010 Aaron Crane.  All rights reserved.
 
 DBD::PgPP is free software; you can redistribute it and/or modify it under
 the terms of Perl itself, that is to say, under the terms of either:

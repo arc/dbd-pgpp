@@ -16,6 +16,7 @@ WriteMakefile1(
     test         => { TESTS => 't/*/*.t' },
     PREREQ_PM    => {
         'DBI'        => 1.59,   # earliest version tested recently
+        'Digest::MD5' => 0,
         'Test::More' => 0,
     },
 );

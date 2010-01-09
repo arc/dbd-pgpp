@@ -1,5 +1,12 @@
 Revision history for Perl extension DBD::PgPP.
 
+0.08  Sat Jan  9 17:56:15 UTC 2010
+
+    - Regenerate dist using latest ExtUtils::MakeMaker; thanks to Alexandr
+      Ciornii http://github.com/chorny/dbd-pgpp
+
+    - Now needs Perl 5.8
+
 0.07  Sat Aug 29 13:17:21 UTC 2009
 
     - RT#48919: Allow quoting strings containing \0 (not that doing so is

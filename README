@@ -18,7 +18,7 @@ This module uses the following other modules and libraries:
 
   DBI
   IO::Socket (ships with supported Perl versions)
-  Digest::MD5
+  Digest::MD5 (ships with supported Perl versions)
 
 
 INSTALLATION

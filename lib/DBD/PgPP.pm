@@ -1629,9 +1629,11 @@ ignores the type at the moment.
 
 =head1 DEPENDENCIES
 
-This module requires these other modules and libraries:
+This module requires Perl 5.8 or higher.  (If you want it to work under
+earlier Perl versions, patches are welcome.)
 
-L<DBI>, L<Digest::MD5>
+The only module used (other than those which ship with supported Perl
+versions) is L<DBI>.
 
 =head1 SEE ALSO
 

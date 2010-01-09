@@ -4,7 +4,7 @@ use 5.006;
 
 WriteMakefile1(
     LICENSE => 'perl',
-    MIN_PERL_VERSION => '5.006',
+    MIN_PERL_VERSION => '5.008',
     META_MERGE => {
         resources => {
             repository => 'http://github.com/arc/dbd-pgpp',
@@ -16,7 +16,6 @@ WriteMakefile1(
     test         => { TESTS => 't/*/*.t' },
     PREREQ_PM    => {
         'DBI'        => 1.59,   # earliest version tested recently
-        'Digest::MD5' => 0,
         'Test::More' => 0,
     },
 );
